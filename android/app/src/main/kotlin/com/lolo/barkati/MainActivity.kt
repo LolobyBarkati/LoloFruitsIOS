@@ -1,4 +1,4 @@
-package com.example.barkati_frits
+package com.lolo.barkati
 
 import android.content.Context
 import androidx.multidex.MultiDex

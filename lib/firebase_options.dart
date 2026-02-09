@@ -25,9 +25,15 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        return macos;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for macos - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.windows:
-        return windows;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for windows - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -52,7 +58,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAiPxQX51knc3O0mjYVyhMcbMpXIuDvc8U',
-    appId: '1:21631511541:android:25789483958c7da8004ebc',
+    appId: '1:21631511541:android:33df2c9b363d4d45004ebc',
     messagingSenderId: '21631511541',
     projectId: 'lolobybarkati-5f1a6',
     storageBucket: 'lolobybarkati-5f1a6.firebasestorage.app',
@@ -60,30 +66,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDBEQQ8rTULlScj5FxoSqhRC_GEzHCdb2c',
-    appId: '1:21631511541:ios:0400b8a3769fcaed004ebc',
+    appId: '1:21631511541:ios:12f6a75b807cd2dc004ebc',
     messagingSenderId: '21631511541',
     projectId: 'lolobybarkati-5f1a6',
     storageBucket: 'lolobybarkati-5f1a6.firebasestorage.app',
-    iosBundleId: 'com.example.barkatiFrits',
+    iosBundleId: 'com.lolo.barkati',
   );
-
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDBEQQ8rTULlScj5FxoSqhRC_GEzHCdb2c',
-    appId: '1:21631511541:ios:0400b8a3769fcaed004ebc',
-    messagingSenderId: '21631511541',
-    projectId: 'lolobybarkati-5f1a6',
-    storageBucket: 'lolobybarkati-5f1a6.firebasestorage.app',
-    iosBundleId: 'com.example.barkatiFrits',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBJlq74SzI7AtiLNI6nEELPbRgQillXv-s',
-    appId: '1:21631511541:web:e6802b8fdef4014e004ebc',
-    messagingSenderId: '21631511541',
-    projectId: 'lolobybarkati-5f1a6',
-    authDomain: 'lolobybarkati-5f1a6.firebaseapp.com',
-    storageBucket: 'lolobybarkati-5f1a6.firebasestorage.app',
-    measurementId: 'G-S0SE9MLD45',
-  );
-
 }

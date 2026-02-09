@@ -1,12 +1,13 @@
 import 'dart:ui';
-import 'package:barkati_frits/screens/fingerprintauth_screen.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:barkati_frits/resources/auth_methods.dart';
 import 'package:barkati_frits/widgets/custom_button.dart';
 import 'package:barkati_frits/widgets/custom_textfield.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:barkati_frits/screens/fingerprintauth_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   static const String routeName = '/signup';
@@ -19,61 +20,89 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _usernameController =
-      TextEditingController(); // Renamed
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
-  String _countryCode = '+91'; // Default to India
-  bool _isPhoneVerified = false;
-  bool _isOtpSent = false;
-  // ignore: unused_field
-  String? _supabaseSessionId;
 
   final AuthMethods _authMethods = AuthMethods();
 
-  // ignore: unused_field
+  String _countryCode = '+91';
+  bool _isPhoneVerified = false;
+  bool _isOtpSent = false;
   bool _isLoading = false;
   bool _showPassword = false;
   bool _agreedToTerms = false;
+  String? _verificationId;
 
-  final SupabaseClient supabase = Supabase.instance.client;
+  final String _twoFactorApiKey =
+      '7e388030-6e57-11f0-a562-0200cd936042'; // TODO: Replace
 
-  Future<void> sendOtp() async {
-    final phone = '$_countryCode${_phoneController.text}';
+  Future<void> sendOtp2Factor() async {
+    final phone = '$_countryCode${_phoneController.text.trim()}';
+    setState(() => _isLoading = true);
+
+    final uri = Uri.parse(
+        'https://2factor.in/API/V1/$_twoFactorApiKey/SMS/$phone/AUTOGEN');
+
     try {
-      await supabase.auth.signInWithOtp(phone: phone);
-      setState(() {
-        _isOtpSent = true;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('OTP sent!')),
-      );
+      final response = await http.get(uri);
+      final jsonResponse = json.decode(response.body);
+
+      if (jsonResponse['Status'] == 'Success') {
+        setState(() {
+          _isOtpSent = true;
+          _isLoading = false;
+          _verificationId = jsonResponse['Details']; // Session ID
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('OTP sent via 2Factor!')),
+        );
+      } else {
+        throw jsonResponse['Details'];
+      }
     } catch (e) {
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to send OTP: $e')),
       );
     }
   }
 
-  Future<void> verifyOtp() async {
-    final phone = '$_countryCode${_phoneController.text}';
-    try {
-      final response = await supabase.auth.verifyOTP(
-        phone: phone,
-        token: _otpController.text.trim(),
-        type: OtpType.sms,
+  Future<void> verifyOtp2Factor() async {
+    final otp = _otpController.text.trim();
+    final sessionId = _verificationId;
+
+    if (sessionId == null || otp.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter the OTP.')),
       );
-      if (response.session != null) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final uri = Uri.parse(
+        'https://2factor.in/API/V1/$_twoFactorApiKey/SMS/VERIFY/$sessionId/$otp');
+
+    try {
+      final response = await http.get(uri);
+      final jsonResponse = json.decode(response.body);
+
+      if (jsonResponse['Status'] == 'Success') {
         setState(() {
           _isPhoneVerified = true;
+          _isLoading = false;
         });
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Phone verified!')),
+          const SnackBar(content: Text('Phone verified successfully!')),
         );
       } else {
-        throw Exception('Invalid OTP');
+        throw jsonResponse['Details'];
       }
     } catch (e) {
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('OTP verification failed: $e')),
       );
@@ -90,6 +119,7 @@ class _SignupScreenState extends State<SignupScreen> {
       );
       return;
     }
+
     if (!_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -172,9 +202,7 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     bool res = await _authMethods.signUpUser(
       context,
@@ -184,9 +212,7 @@ class _SignupScreenState extends State<SignupScreen> {
       phoneNumber: '$_countryCode${_phoneController.text}',
     );
 
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _isLoading = false);
 
     if (res) {
       final prefs = await SharedPreferences.getInstance();
@@ -295,9 +321,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                   labelText: 'Phone Number',
                                   border: InputBorder.none,
                                   contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 15,
-                                  ),
+                                      horizontal: 10, vertical: 15),
                                 ),
                                 onChanged: (phone) {
                                   setState(() {
@@ -315,10 +339,8 @@ class _SignupScreenState extends State<SignupScreen> {
                                   onPressed: _isOtpSent
                                       ? null
                                       : () {
-                                          if (_phoneController
-                                              .text.isNotEmpty) {
-                                            sendOtp();
-                                          }
+                                          if (_phoneController.text.isNotEmpty)
+                                            sendOtp2Factor();
                                         },
                                   child: const Text('Send OTP'),
                                 ),
@@ -331,16 +353,13 @@ class _SignupScreenState extends State<SignupScreen> {
                                           child: TextField(
                                             controller: _otpController,
                                             decoration: const InputDecoration(
-                                              labelText: 'Enter OTP',
-                                            ),
+                                                labelText: 'Enter OTP'),
                                           ),
                                         ),
                                         ElevatedButton(
                                           onPressed: () {
-                                            if (_otpController
-                                                .text.isNotEmpty) {
-                                              verifyOtp();
-                                            }
+                                            if (_otpController.text.isNotEmpty)
+                                              verifyOtp2Factor();
                                           },
                                           child: const Text('Verify'),
                                         ),

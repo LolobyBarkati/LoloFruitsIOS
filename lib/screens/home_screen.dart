@@ -1,9 +1,6 @@
 import 'package:barkati_frits/screens/offer2edit.dart';
-
-// import 'package:barkati_frits/screens/offerscreen.dart';
 import 'package:flutter/material.dart';
-import 'explore_screen.dart';
-// import 'favorites_screen.dart';
+import 'explore.dart';
 import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,7 +15,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _page = 0;
 
   final List<Widget> _pages = [
-    const ExploreScreen(),
+    const ExploreScreen2(),
     const Offer2edit(),
     const ProfileScreen(),
   ];
@@ -59,47 +56,43 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
+      body: Column(
         children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            transitionBuilder: (Widget child, Animation<double> animation) {
-              return FadeTransition(
-                opacity: animation,
-                child: child,
-              );
-            },
-            child: _pages[_page],
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 12,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(Icons.explore, "Explore", 0),
-                  _buildNavItem(Icons.new_releases, "New Arrivals", 1),
-                  _buildNavItem(Icons.person_rounded, "Profile", 2),
-                ],
-              ),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+              child: _pages[_page],
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: Container(
+        // margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 15,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(Icons.home_max_rounded, "Explore", 0),
+            _buildNavItem(Icons.new_releases, "New Arrivals", 1),
+            _buildNavItem(Icons.person_rounded, "Profile", 2),
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,8 @@
 import 'package:barkati_frits/resources/auth_methods.dart';
 import 'package:barkati_frits/screens/fruit_screen.dart';
+import 'package:barkati_frits/screens/offer2edit.dart';
 import 'package:barkati_frits/screens/phoneotp_screen.dart';
+import 'package:barkati_frits/screens/profile.dart';
 import 'package:barkati_frits/widgets/loading_indicator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +34,12 @@ void main() async {
   // Initialize default Firebase app
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: AndroidProvider.debug, 
+    // Use debug for dev
+  );
+  print("✅ Firebase App Check activated with debug mode.");
+
   OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
   OneSignal.initialize("9f8342c0-ae62-4dc2-b578-a8049ae2101d");
   OneSignal.Notifications.requestPermission(true);
@@ -43,9 +51,6 @@ void main() async {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmemZjcGNkeGRsaXNyaHhldG9xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3NDY5NTEsImV4cCI6MjA2NTMyMjk1MX0.nr5IhO_NQzs6DhoX08Opk3H-ya_H9G_7HYYb1sZNZQs', // Replace with your Supabase anon key
   );
 
-  await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.debug, // Use debug for dev
-  );
 
   // Request notification permissions
   await FirebaseMessaging.instance.requestPermission();
@@ -102,10 +107,12 @@ class MyApp extends StatelessWidget {
         TransportScreen.routeName: (context) => const TransportScreen(),
         AgentsScreen.routeName: (context) => const AgentsScreen(),
         StorageScreen.routeName: (context) => const StorageScreen(),
+        Offer2edit.routeName: (context) => const Offer2edit(),
         SubscriptionScreen.routeName: (context) => const SubscriptionScreen(),
         FingerprintAuthScreen.routeName: (context) => FingerprintAuthScreen(),
         PhoneVerificationPage.routeName: (context) => PhoneVerificationPage(),
         FAQScreen.routeName: (context) => FAQScreen(),
+        ProfileScreen.routeName: (context) => const ProfileScreen(),
       },
       home: FutureBuilder(
         future: AuthMethods()

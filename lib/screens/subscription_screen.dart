@@ -1,10 +1,6 @@
-import 'dart:ui';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
-import 'package:intl/intl.dart'; // Import for date formatting
+import 'package:intl/intl.dart';
+import '../providers/subscription_provider.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   static const String routeName = '/subscription';
@@ -16,581 +12,262 @@ class SubscriptionScreen extends StatefulWidget {
 
 class _SubscriptionScreenState extends State<SubscriptionScreen>
     with WidgetsBindingObserver {
-  late Razorpay _razorpay;
-  bool _isActive = false;
+  SubscriptionController? _controller;
   bool _isLoading = true;
-  bool _wasExpired = false;
-  DateTime? _expiryDate;
-
-  // Placeholder for subscription plans if needed for dynamic pricing display
-  // Currently, the prices are hardcoded in _openCheckout and _handlePaymentSuccess
-  final List<Map<String, dynamic>> _plans = [
-    {'name': 'Monthly', 'price': 499, 'description': 'Monthly Subscription'},
-    {'name': 'Yearly', 'price': 4999, 'description': 'Yearly Subscription'},
-  ];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-
-    _razorpay = Razorpay();
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
-
-    _checkPaymentStatus();
+    _controller = SubscriptionController(
+      context: context,
+      onLoadingChanged: (val) {
+        if (mounted) setState(() => _isLoading = val);
+      },
+      onStateUpdate: () {
+        if (mounted) setState(() {});
+      },
+    );
+    _controller!.init();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _razorpay.clear();
+    _controller?.dispose();
     super.dispose();
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _checkPaymentStatus();
-    }
-  }
-
-  Future<void> _checkPaymentStatus() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      setState(() {
-        _isActive = false;
-        _wasExpired = false;
-        _isLoading = false;
-      });
-      return;
-    }
-
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection('payments')
-          .where('userId', isEqualTo: user.uid)
-          .orderBy('timestamp', descending: true)
-          .limit(1)
-          .get();
-
-      if (snap.docs.isEmpty) {
-        setState(() {
-          _isActive = false;
-          _wasExpired = false;
-          _isLoading = false;
-        });
-        return;
-      }
-
-      final data = snap.docs.first.data();
-      final status = data['status'] as bool? ?? false;
-      final expiryTimestamp = data['subscription_expiry'] as Timestamp?;
-
-      final expiry = expiryTimestamp?.toDate();
-      final isExpired = expiry == null || expiry.isBefore(DateTime.now());
-
-      setState(() {
-        _expiryDate = expiry;
-        _isActive = status && !isExpired;
-        _wasExpired = status && isExpired;
-        _isLoading = false;
-      });
-    } catch (e) {
-      print("❌ Error checking subscription: $e");
-      setState(() {
-        _isActive = false;
-        _wasExpired = false;
-        _isLoading = false;
-      });
-    }
-  }
-
-  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
-    Fluttertoast.showToast(msg: "Payment Success: ${response.paymentId}");
-
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    // Determine the exact plan purchased based on the amount received from Razorpay
-    // Assuming 49900 for monthly and 499900 for yearly based on your original code
-    final int amountPaid = response.amount ?? 0; // Amount is in paise
-    final bool isYearly = amountPaid == (_plans[1]['price'] * 100); // Check against yearly plan's paise amount
-
-    final now = DateTime.now();
-    final expiry = isYearly
-        ? DateTime(now.year + 1, now.month, now.day)
-        : DateTime(now.year, now.month + 1, now.day); // Monthly vs Yearly expiry
-
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection('payments')
-          .where('userId', isEqualTo: user.uid)
-          .orderBy('timestamp', descending: true)
-          .limit(1)
-          .get();
-
-      if (snap.docs.isNotEmpty) {
-        // 🔁 Update existing document
-        final docId = snap.docs.first.id;
-        await FirebaseFirestore.instance
-            .collection('payments')
-            .doc(docId)
-            .update({
-          'paymentId': response.paymentId,
-          'orderId': response.orderId,
-          'subscription_date': now,
-          'subscription_expiry': expiry,
-          'amount': amountPaid, // Use actual amountPaid
-          'timestamp': now,
-          'status': true,
-        });
-      } else {
-        // ➕ Create new document (first-time subscriber)
-        await FirebaseFirestore.instance.collection('payments').add({
-          'userId': user.uid,
-          'email': user.email,
-          'name': user.displayName ?? 'No Name',
-          'paymentId': response.paymentId,
-          'orderId': response.orderId,
-          'subscription_date': now,
-          'subscription_expiry': expiry,
-          'amount': amountPaid, // Use actual amountPaid
-          'timestamp': now,
-          'status': true,
-        });
-      }
-
-      Fluttertoast.showToast(msg: "Payment recorded!");
-      setState(() {
-        _isActive = true;
-        _wasExpired = false;
-        _expiryDate = expiry;
-      });
-      // A small delay to ensure Firestore has propagated changes before navigating
-      await _checkPaymentStatus(); // Re-check status to be absolutely sure
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) { // Check if the widget is still mounted before navigating
-           Navigator.of(context).pushReplacementNamed('/home');
-        }
-      });
-    } catch (e) {
-      Fluttertoast.showToast(msg: "Failed to save payment: $e");
-    }
-  }
-
-  void _handlePaymentError(PaymentFailureResponse response) {
-    Fluttertoast.showToast(
-      msg: "Payment Failed: ${response.code} - ${response.message}",
-    );
-  }
-
-  void _handleExternalWallet(ExternalWalletResponse response) {
-    Fluttertoast.showToast(msg: "External Wallet: ${response.walletName}");
-  }
-
-  void _openCheckout(bool isYearly) {
-    // Ensure the amounts match the _plans list for consistency
-    final int amountInPaise = isYearly ? _plans[1]['price'] * 100 : _plans[0]['price'] * 100;
-    final String description = isYearly ? _plans[1]['description'] : _plans[0]['description'];
-
-    var options = {
-      'key': 'rzp_test_dUVpUl4p4r1uaG', // Replace with your actual key
-      'amount': amountInPaise, // in paise
-      'name': 'Barkati Fruits',
-      'description': description,
-      'prefill': {
-        'contact': '9123456789', // Consider getting this from user profile
-        'email': FirebaseAuth.instance.currentUser?.email ?? 'user@example.com', // Provide a fallback
-      },
-      'external': {
-        'wallets': ['paytm']
-      }
-    };
-
-    try {
-      _razorpay.open(options);
-    } catch (e) {
-      debugPrint('Error opening Razorpay: $e');
-      Fluttertoast.showToast(msg: "Could not open payment gateway.");
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    if (_controller == null) {
+      return const Scaffold(
+          backgroundColor: Color(0xFF0F172A),
+          body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFF0F172A), // Premium Deep Navy/Black
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          'Subscription Plans',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-          onPressed: () {
-            Navigator.of(context).pop(); // Go back to the previous screen
-          },
+          icon: const Icon(Icons.close, color: Colors.white70),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Stack(
-        children: [
-          // Background Image
-          Positioned.fill(
-            child: Image.asset(
-              'assets/background.png', // Ensure this asset exists
-              fit: BoxFit.cover,
-            ),
-          ),
-          // Gradient Overlay for better readability
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.6),
-                    Colors.black.withOpacity(0.8),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // Loading Indicator
-          if (_isLoading)
-            const Center(
-              child: CircularProgressIndicator(color: Colors.orangeAccent),
-            )
-          else
-            // Main Content
-            SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 80.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 20),
-                  // App Logo/Icon (assuming 'assets/icons/icon2.jpg' is your app logo)
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: CircleAvatar(
-                      backgroundImage: const AssetImage('assets/icons/icon2.jpg'),
-                      radius: 60,
-                      backgroundColor: Colors.white.withOpacity(0.8),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-
-                  // Current Subscription Status Card
-                  _buildStatusCard(),
-                  const SizedBox(height: 30),
-
-                  // Features Section
-                  _buildFeaturesSection(),
-                  const SizedBox(height: 30),
-
-                  // Subscription Options
-                  if (!_isActive) ...[
-                    _buildSubscriptionCard(
-                      planName: _plans[0]['name'],
-                      price: _plans[0]['price'],
-                      description: 'Access to all premium features monthly.',
-                      duration: 'per month',
-                      onTap: () => _openCheckout(false),
-                      isRecommended: false,
-                    ),
-                    const SizedBox(height: 20),
-                    _buildSubscriptionCard(
-                      planName: _plans[1]['name'],
-                      price: _plans[1]['price'],
-                      description: 'Save big with yearly subscription.',
-                      duration: 'per year',
-                      onTap: () => _openCheckout(true),
-                      isRecommended: true,
-                    ),
-                  ],
-                  const SizedBox(height: 40),
-                ],
-              ),
-            ),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.amber))
+          : _buildContent(),
     );
   }
 
-  Widget _buildStatusCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            _isActive
-                ? 'Your Subscription is Active!'
-                : _wasExpired
-                    ? 'Your Subscription Has Expired.'
-                    : 'Unlock Premium Features',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: _isActive ? Colors.greenAccent : Colors.redAccent,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 2,
-                  offset: const Offset(1, 1),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (_expiryDate != null)
-            Text(
-              _isActive
-                  ? 'Active until: ${DateFormat('MMM dd, yyyy').format(_expiryDate!)}'
-                  : 'Last expired: ${DateFormat('MMM dd, yyyy').format(_expiryDate!)}',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white.withOpacity(0.8),
-                fontWeight: FontWeight.w500,
-              ),
-            )
-          else if (!_isActive)
-            Text(
-              'Subscribe now to enjoy exclusive benefits!',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white.withOpacity(0.8),
-              ),
-            ),
-          const SizedBox(height: 20),
-          if (!_isActive && _wasExpired)
-            ElevatedButton(
-              onPressed: () => _openCheckout(false), // Logic remains same
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange.shade700,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                elevation: 8,
-              ),
-              child: const Text(
-                "Renew Monthly Subscription ₹499",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeaturesSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
+  Widget _buildContent() {
+    final controller = _controller!;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'What you get:',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          Text(
+            controller.isActive ? "Premium\nUser" : "Upgrade to\nPremium",
+            style: const TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.w800,
               color: Colors.white,
+              letterSpacing: -1,
             ),
           ),
-          const SizedBox(height: 15),
-          _buildFeatureItem('Unlock Transport Details', Icons.local_shipping),
-          _buildFeatureItem('Unlock Cold Storage Access', Icons.ac_unit),
-          _buildFeatureItem('Unlock Agent Services', Icons.support_agent),
-          _buildFeatureItem('Exclusive Discounts', Icons.percent),
-          _buildFeatureItem('Priority Customer Support', Icons.headset_mic),
+          const SizedBox(height: 12),
+          Text(
+            controller.isActive
+                ? "You have access to all premium features."
+                : "Get full access to all logistics tools and priority services.",
+            style:
+                TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.6)),
+          ),
+          const SizedBox(height: 32),
+          _buildStatusSection(controller),
+          const SizedBox(height: 32),
+          const Text(
+            "BENEFITS",
+            style: TextStyle(
+                color: Colors.amber,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+                fontSize: 12),
+          ),
+          const SizedBox(height: 16),
+          _buildFeaturesGrid(),
+          const SizedBox(height: 40),
+          if (!controller.isActive) ...[
+            _buildPlanCard(controller.plans[0], false),
+            const SizedBox(height: 16),
+            _buildPlanCard(controller.plans[1], true),
+          ],
+          const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  Widget _buildFeatureItem(String text, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+  Widget _buildStatusSection(SubscriptionController controller) {
+    if (!controller.isActive && controller.expiryDate == null)
+      return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.greenAccent, size: 28),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 18, color: Colors.white),
-            ),
+          Icon(
+            controller.isActive ? Icons.verified : Icons.error_outline,
+            color: controller.isActive ? Colors.greenAccent : Colors.redAccent,
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                controller.isActive
+                    ? "Active Subscription"
+                    : "Subscription Expired",
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              if (controller.expiryDate != null)
+                Text(
+                  "Until ${DateFormat('MMM dd, yyyy').format(controller.expiryDate!)}",
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.5), fontSize: 12),
+                ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSubscriptionCard({
-    required String planName,
-    required int price,
-    required String description,
-    required String duration,
-    required VoidCallback onTap,
-    bool isRecommended = false,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(25),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.25),
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(
-            color: isRecommended ? Colors.orangeAccent.shade400 : Colors.white.withOpacity(0.4),
-            width: isRecommended ? 3 : 1.5,
+  Widget _buildFeaturesGrid() {
+    return Column(
+      children: [
+        _featureItem(Icons.local_shipping_outlined, "Transport Details",
+            "View all carrier information"),
+        _featureItem(Icons.verified_user_outlined, "Certified Agents",
+            "Access only verified professionals"),
+        _featureItem(Icons.support_agent_outlined, "Priority Support",
+            "24/7 dedicated agent access"),
+      ],
+    );
+  }
+
+  Widget _featureItem(IconData icon, String title, String sub) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.amber.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: Colors.amber, size: 24),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isRecommended ? Colors.orangeAccent.withOpacity(0.4) : Colors.black.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-          gradient: isRecommended
-              ? LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.orange.shade700.withOpacity(0.8),
-                    Colors.orange.shade900.withOpacity(0.8),
-                  ],
-                )
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (isRecommended)
-              Align(
-                alignment: Alignment.topRight,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.amberAccent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Text(
-                    'Recommended',
-                    style: TextStyle(
-                      color: Colors.black,
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: const TextStyle(
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ),
-            Text(
-              '$planName Plan',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: isRecommended ? Colors.white : Colors.white,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              '₹$price',
-              style: TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
-                color: isRecommended ? Colors.white : Colors.white,
-              ),
-            ),
-            Text(
-              duration,
-              style: TextStyle(
-                fontSize: 18,
-                color: isRecommended ? Colors.white.withOpacity(0.9) : Colors.white.withOpacity(0.7),
-              ),
-            ),
-            const SizedBox(height: 15),
-            Text(
-              description,
-              style: TextStyle(
-                fontSize: 16,
-                color: isRecommended ? Colors.white.withOpacity(0.9) : Colors.white.withOpacity(0.8),
-              ),
-            ),
-            const SizedBox(height: 25),
-            Center(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                decoration: BoxDecoration(
-                  color: isRecommended ? Colors.white : Colors.orangeAccent,
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isRecommended ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  isRecommended ? 'SUBSCRIBE NOW' : 'SELECT PLAN',
-                  textAlign: TextAlign.center,
+                      fontSize: 16)),
+              Text(sub,
                   style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: isRecommended ? Colors.orange.shade800 : Colors.white,
+                      color: Colors.white.withOpacity(0.4), fontSize: 13)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlanCard(Map<String, dynamic> plan, bool isRecommended) {
+    return InkWell(
+      onTap: () => _controller?.openCheckout(isRecommended),
+      borderRadius: BorderRadius.circular(24),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isRecommended ? Colors.amber : Colors.white.withOpacity(0.1),
+            width: isRecommended ? 2 : 1,
+          ),
+          boxShadow: isRecommended
+              ? [
+                  BoxShadow(
+                      color: Colors.amber.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10))
+                ]
+              : [],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (isRecommended)
+                    const Text("MOST POPULAR",
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.amber)),
+                  Text(
+                    plan['name'],
+                    style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
                   ),
-                ),
+                  const SizedBox(height: 4),
+                  Text(
+                    plan['description'],
+                    style: TextStyle(
+                        fontSize: 13, color: Colors.white.withOpacity(0.6)),
+                  ),
+                ],
               ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  "₹${plan['price']}",
+                  style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white),
+                ),
+                Text(
+                  isRecommended ? "/year" : "/month",
+                  style: TextStyle(
+                      fontSize: 12, color: Colors.white.withOpacity(0.5)),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
-}
-
-extension on PaymentSuccessResponse {
-  get amount => null;
 }

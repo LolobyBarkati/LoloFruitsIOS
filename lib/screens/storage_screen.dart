@@ -1,81 +1,132 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-// Removed: import 'package:barkati_frits/screens/subscription_screen.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 class StorageScreen extends StatefulWidget {
   static const String routeName = '/storage';
-  final String? initialStorageName; // New parameter
+  final String? initialStorageName;
 
-  const StorageScreen(
-      {super.key, this.initialStorageName}); // Updated constructor
+  const StorageScreen({super.key, this.initialStorageName});
 
   @override
   State<StorageScreen> createState() => _StorageScreenState();
 }
 
 class _StorageScreenState extends State<StorageScreen> {
-  // Removed: bool? isSubscribed;
-  final ScrollController _scrollController =
-      ScrollController(); // New ScrollController
+  // Pagination
+  static const int _pageSize = 10;
+  final List<QueryDocumentSnapshot> _storages = [];
+  QueryDocumentSnapshot? _lastDoc;
+  bool _isLoading = false;
+  bool _hasMore = true;
+
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    // Removed: checkSubscriptionByEmail();
+    _loadInitial();
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent - 200 &&
+          !_isLoading &&
+          _hasMore) {
+        _loadMore();
+      }
+    });
   }
 
   @override
   void dispose() {
-    _scrollController.dispose(); // Dispose the controller
+    _scrollController.dispose();
     super.dispose();
   }
 
-  // Removed: checkSubscriptionByEmail function
+  Future<void> _loadInitial() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('cold storage')
+        .orderBy('timestamp', descending: true)
+        .limit(_pageSize)
+        .get();
+
+    setState(() {
+      _storages.clear();
+      _storages.addAll(snapshot.docs);
+      _lastDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
+      _hasMore = snapshot.docs.length == _pageSize;
+      _isLoading = false;
+    });
+
+    _scrollToInitialItem();
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoading || !_hasMore || _lastDoc == null) return;
+    setState(() => _isLoading = true);
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('cold storage')
+        .orderBy('timestamp', descending: true)
+        .startAfterDocument(_lastDoc!)
+        .limit(_pageSize)
+        .get();
+
+    setState(() {
+      _storages.addAll(snapshot.docs);
+      _lastDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : _lastDoc;
+      _hasMore = snapshot.docs.length == _pageSize;
+      _isLoading = false;
+    });
+  }
+
+  void _scrollToInitialItem() {
+    if (widget.initialStorageName == null) return;
+
+    final index = _storages.indexWhere((doc) =>
+        (doc.data() as Map<String, dynamic>)['name'] ==
+        widget.initialStorageName);
+
+    if (index != -1 && _scrollController.hasClients) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.animateTo(
+          index * 140.0,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+        );
+      });
+    }
+  }
 
   Future<void> _callOwner(String phone) async {
-    final Uri callUri = Uri(scheme: 'tel', path: phone);
-    if (await canLaunchUrl(callUri)) {
-      await launchUrl(callUri);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Could not launch phone dialer for $phone")),
-      );
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
     }
   }
 
   Future<void> _openMap(String url) async {
-    final Uri mapUri = Uri.parse(url);
-    if (await canLaunchUrl(mapUri)) {
-      await launchUrl(mapUri);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Could not open map for $url")),
-      );
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
     }
   }
 
-  // Function to scroll to the specific item
-  void _scrollToStorageItem(List<QueryDocumentSnapshot> docs) {
-    if (widget.initialStorageName != null && _scrollController.hasClients) {
-      final int index = docs.indexWhere((doc) =>
-          (doc.data() as Map<String, dynamic>)['name'] ==
-          widget.initialStorageName);
-
-      if (index != -1) {
-        // Ensure the list is built before attempting to scroll
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _scrollController.animateTo(
-            index *
-                (MediaQuery.of(context).size.width * 0.25 +
-                    20), // Approximate item height + margin (adjust as needed)
-            duration: const Duration(seconds: 1),
-            curve: Curves.easeInOut,
-          );
-        });
-      }
-    }
+  void _openPdf(String url) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: const Text('Rate Sheet')),
+          body: SfPdfViewer.network(url),
+        ),
+      ),
+    );
   }
 
   @override
@@ -84,159 +135,128 @@ class _StorageScreenState extends State<StorageScreen> {
       appBar: AppBar(
         title: const Text('Cold Storage'),
         centerTitle: true,
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
       ),
       backgroundColor: Colors.blueGrey[50],
-      body: StreamBuilder<QuerySnapshot>(
-        // Now always shows the StreamBuilder
-        stream: FirebaseFirestore.instance
-            .collection('cold storage')
-            .orderBy('timestamp', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: _storages.isEmpty && _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _storages.isEmpty
+              ? const Center(child: Text('No storage entries found.'))
+              : ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _storages.length + (_hasMore ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == _storages.length) {
+                      return const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('No storage entries found.'));
-          }
+                    final data =
+                        _storages[index].data() as Map<String, dynamic>;
 
-          final docs = snapshot.data!.docs;
+                    final name = data['name'] ?? 'N/A';
+                    final phone = data['director_number'] ?? '';
+                    final mapUrl = data['google_map_link'] ?? '';
+                    final fileUrl = data['file_url'] ?? '';
+                    final fileSize = data['file_size'] ?? '';
+                    final Timestamp? ts = data['timestamp'];
 
-          // Call _scrollToStorageItem after the first frame is rendered
-          _scrollToStorageItem(docs);
+                    final updatedText = ts != null
+                        ? timeago.format(ts.toDate())
+                        : 'Recently updated';
 
-          return ListView.builder(
-            controller: _scrollController, // Assign the controller
-            itemCount: docs.length,
-            padding: const EdgeInsets.all(16.0),
-            itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>;
-              final name = data['name'] ?? 'N/A';
-              final price = data['price_per_week'] ?? 'N/A';
-              final phone = data['director_number'] ?? '';
-              final mapUrl = data['google_map_link'] ?? '';
-
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 10),
-                elevation: 6,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                          color: Colors.blueGrey,
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 10),
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: Colors.green[50],
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(Icons.insert_drive_file_rounded,
+                                  size: 40, color: Colors.green[700]),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(name,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16)),
+                                  const SizedBox(height: 6),
+                                  if (fileSize.isNotEmpty)
+                                    Text(fileSize,
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[700])),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      _actionBtn(
+                                          'Call',
+                                          Icons.call,
+                                          Colors.green,
+                                          () => _callOwner(phone)),
+                                      const SizedBox(width: 8),
+                                      _actionBtn(
+                                          'Map',
+                                          Icons.map,
+                                          Colors.blue,
+                                          () => _openMap(mapUrl)),
+                                      const SizedBox(width: 8),
+                                      _actionBtn(
+                                          'Rate',
+                                          Icons.download,
+                                          Colors.green[700]!,
+                                          () => _openPdf(fileUrl)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text('Updated $updatedText',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600])),
+                                ],
+                              ),
+                            )
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Rates: ₹$price/week",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[800],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Expanded(
-                            child: _buildActionButton(
-                              context: context,
-                              icon: Icons.call,
-                              label: 'Call',
-                              color: Colors.green[700]!,
-                              onPressed: () => _callOwner(phone),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _buildActionButton(
-                              context: context,
-                              icon: Icons.picture_as_pdf,
-                              label: 'Rate Sheet',
-                              color: Colors.deepPurple[700]!,
-                              onPressed: () async {
-                                final fileUrl = data['file_url'] ?? '';
-                                if (fileUrl.isNotEmpty) {
-                                  final uri = Uri.parse(fileUrl);
-                                  if (await canLaunchUrl(uri)) {
-                                    await launchUrl(uri,
-                                        mode: LaunchMode.externalApplication);
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content:
-                                              Text("Could not open the PDF.")),
-                                    );
-                                  }
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            "No Rate Sheet PDF available.")),
-                                  );
-                                }
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _buildActionButton(
-                              context: context,
-                              icon: Icons.map,
-                              label: 'Map',
-                              color: Colors.blue[700]!,
-                              onPressed: () => _openMap(mapUrl),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-              );
-            },
-          );
-        },
-      ),
     );
   }
 
-  // Removed: _buildSubscriptionPrompt method
-
-  Widget _buildActionButton({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+  Widget _actionBtn(
+      String label, IconData icon, Color color, VoidCallback onTap) {
+    return Expanded(
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 16),
+        label: Text(label, style: const TextStyle(fontSize: 12)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        elevation: 3,
-        textStyle: const TextStyle(fontSize: 14),
       ),
-      icon: Icon(icon, size: 20),
-      label: Text(label),
     );
   }
 }

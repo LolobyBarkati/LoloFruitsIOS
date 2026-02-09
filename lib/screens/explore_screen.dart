@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -26,12 +28,74 @@ class _ExploreScreenState extends State<ExploreScreen>
     {'text': 'Agents', 'route': '/agents', 'image': 'assets/agent.jpg'},
   ];
 
+  // Pagination helpers
+  final ScrollController _scrollController = ScrollController();
+  final int _pageSize = 4;
+  final List<Map<String, String>> _allButtons = [];
+  final List<Map<String, String>> _displayedButtons = [];
+  bool _isLoadingMore = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    for (var item in buttonData) {
-      precacheImage(AssetImage(item['image']!), context);
+    // initialize pagination lists once
+    if (_allButtons.isEmpty) {
+      _allButtons.addAll(buttonData);
+      _displayedButtons.addAll(_allButtons.take(
+          _pageSize > _allButtons.length ? _allButtons.length : _pageSize));
     }
+
+    // precache displayed images (assets or network)
+    for (var item in _displayedButtons) {
+      final img = item['image']!;
+      if (img.startsWith('http')) {
+        // cached_network_image handles caching; still optionally prefetch
+        CachedNetworkImageProvider(img).resolve(const ImageConfiguration());
+      } else {
+        precacheImage(AssetImage(img), context);
+      }
+    }
+
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        _displayedButtons.length < _allButtons.length) {
+      _loadMore();
+    }
+  }
+
+  void _loadMore() async {
+    if (_isLoadingMore) return;
+    setState(() => _isLoadingMore = true);
+    await Future.delayed(const Duration(milliseconds: 200));
+    final nextIndex = _displayedButtons.length;
+    final end = (nextIndex + _pageSize) > _allButtons.length
+        ? _allButtons.length
+        : nextIndex + _pageSize;
+    setState(() {
+      _displayedButtons.addAll(_allButtons.sublist(nextIndex, end));
+      // pre-cache newly added images
+      for (var item in _displayedButtons.sublist(nextIndex, end)) {
+        final img = item['image']!;
+        if (img.startsWith('http')) {
+          CachedNetworkImageProvider(img).resolve(const ImageConfiguration());
+        } else {
+          precacheImage(AssetImage(img), context);
+        }
+      }
+      _isLoadingMore = false;
+    });
   }
 
   @override
@@ -56,9 +120,9 @@ class _ExploreScreenState extends State<ExploreScreen>
               onTap: () {
                 Navigator.pushNamed(context, '/subscription');
               },
-              child: const Icon(
-                Icons.subscriptions,
-                color: Colors.black,
+              child: Icon(
+                FontAwesomeIcons.crown,
+                color: Colors.yellow[700],
                 size: 30,
               ),
             ),
@@ -71,7 +135,8 @@ class _ExploreScreenState extends State<ExploreScreen>
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewPadding.bottom + 20, // <-- This raises the nav bar above system buttons
+            bottom: MediaQuery.of(context).viewPadding.bottom +
+                20, // <-- This raises the nav bar above system buttons
           ),
           child: Container(
             decoration: const BoxDecoration(
@@ -82,11 +147,15 @@ class _ExploreScreenState extends State<ExploreScreen>
               ),
             ),
             child: ListView.separated(
+              controller: _scrollController,
               padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 12),
-              itemCount: buttonData.length,
+              itemCount: _displayedButtons.length + (_isLoadingMore ? 1 : 0),
               separatorBuilder: (context, index) => const SizedBox(height: 20),
               itemBuilder: (context, index) {
-                final item = buttonData[index];
+                if (index >= _displayedButtons.length) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final item = _displayedButtons[index];
                 return _AnimatedExploreCard(
                   image: item['image']!,
                   label: item['text']!,
@@ -183,10 +252,26 @@ class _AnimatedExploreCardState extends State<_AnimatedExploreCard>
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(22),
-                  child: Image.asset(
-                    widget.image,
-                    fit: BoxFit.cover,
-                  ),
+                  child: widget.image.startsWith('http')
+                      ? CachedNetworkImage(
+                          imageUrl: widget.image,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey[300],
+                            child: const Center(
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2)),
+                          ),
+                          errorWidget: (context, url, error) => Image.asset(
+                            'assets/placeholder.jpg',
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : Image.asset(
+                          widget.image,
+                          fit: BoxFit.cover,
+                          cacheWidth: 800,
+                        ),
                 ),
                 Container(
                   height: 250,

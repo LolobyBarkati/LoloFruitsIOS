@@ -7,9 +7,28 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:21631511541:android:25789483958c7da8004ebc",
+        "mobilesdk_app_id": "1:21631511541:android:0237d03127cca85f004ebc",
         "android_client_info": {
-          "package_name": "com.example.barkati_frits"
+          "package_name": "com.lolo.adminapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAiPxQX51knc3O0mjYVyhMcbMpXIuDvc8U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:21631511541:android:33df2c9b363d4d45004ebc",
+        "android_client_info": {
+          "package_name": "com.lolo.barkati"
         }
       },
       "oauth_client": [],

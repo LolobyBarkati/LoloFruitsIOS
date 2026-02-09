@@ -6,6 +6,7 @@ import 'package:photo_view/photo_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class Offer2edit extends StatefulWidget {
+  static const String routeName = '/offers';
   const Offer2edit({super.key});
   @override
   State<Offer2edit> createState() => _Offer2editState();

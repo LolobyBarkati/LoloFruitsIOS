@@ -584,59 +584,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ],
                           ),
                         ),
-                        Expanded(
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 24),
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 20),
-                                const Text(
-                                  'Your Feedback',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black),
-                                ),
-                                const SizedBox(height: 10),
-                                TextField(
-                                  controller: _feedbackController,
-                                  maxLines: 4,
-                                  decoration: InputDecoration(
-                                    hintText: 'Enter your feedback...',
-                                    fillColor: Colors.grey.withOpacity(0.5),
-                                    filled: true,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                OutlinedButton(
-                                  onPressed: _submitFeedback,
-                                  child: const Text('Submit Feedback'),
-                                ),
-                                // NEW BUTTON: Phone Number Verification
-                                // const SizedBox(height: 10), // Add some space
-                                // OutlinedButton(
-                                //   onPressed: () {
-                                //     Navigator.pushNamed(
-                                //         context, PhoneVerificationPage.routeName);
-                                //   },
-                                //   child:
-                                //       const Text('Phone Number Verification'),
-                                // ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        
                       ],
                     ),
                   ),
