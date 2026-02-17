@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:barkati_frits/screens/profile.dart';
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final VoidCallback? onProfileTap;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onPremiumTap;
   final bool isSubscribed; // This controls the text
 
   const HomeAppBar({
     super.key,
-    this.onProfileTap,
     this.onNotificationTap,
     this.onPremiumTap,
     this.isSubscribed = false, // Default is false
@@ -30,10 +29,9 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           children: [
             // Top Row
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/profile'),
+                  onTap: () => Navigator.pushNamed(context, ProfileScreen.routeName),
                   child: Hero(
                     tag: 'profile-avatar',
                     child: Container(
@@ -49,21 +47,18 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   ),
                 ),
-                const Text(
-                  'Lolo Fruits',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold),
-                ),
-                GestureDetector(
-                  onTap: onNotificationTap,
-                  child: const CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Colors.white10,
-                    child: Icon(Icons.notifications_none, color: Colors.white70),
+                Expanded(
+                  child: Center(
+                    child: const Text(
+                      'Lolo Fruits',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
+                const SizedBox(width: 36),
               ],
             ),
             const SizedBox(height: 12),

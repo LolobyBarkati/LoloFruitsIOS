@@ -24,6 +24,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.teal.shade700,
         elevation: 0,
+        centerTitle: true,
       ),
       body: Container(
         decoration: BoxDecoration(

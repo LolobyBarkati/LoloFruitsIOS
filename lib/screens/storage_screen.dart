@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class StorageScreen extends StatefulWidget {
@@ -117,16 +116,16 @@ class _StorageScreenState extends State<StorageScreen> {
     }
   }
 
-  void _openPdf(String url) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
-          appBar: AppBar(title: const Text('Rate Sheet')),
-          body: SfPdfViewer.network(url),
-        ),
-      ),
-    );
+  Future<void> _openPdf(String url) async {
+    if (url.isEmpty) return;
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open PDF externally')),
+      );
+    }
   }
 
   @override
@@ -212,10 +211,7 @@ class _StorageScreenState extends State<StorageScreen> {
                                           Colors.green,
                                           () => _callOwner(phone)),
                                       const SizedBox(width: 8),
-                                      _actionBtn(
-                                          'Map',
-                                          Icons.map,
-                                          Colors.blue,
+                                      _actionBtn('Map', Icons.map, Colors.blue,
                                           () => _openMap(mapUrl)),
                                       const SizedBox(width: 8),
                                       _actionBtn(

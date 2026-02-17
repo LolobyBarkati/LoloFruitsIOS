@@ -1,7 +1,7 @@
 import 'package:barkati_frits/screens/offer2edit.dart';
 import 'package:flutter/material.dart';
 import 'explore.dart';
-import 'profile_screen.dart';
+
 
 class HomeScreen extends StatefulWidget {
   static String routeName = '/home';
@@ -17,7 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = [
     const ExploreScreen2(),
     const Offer2edit(),
-    const ProfileScreen(),
+  
   ];
 
   void onPageChange(int index) {
@@ -88,9 +88,9 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(Icons.home_max_rounded, "Explore", 0),
+            _buildNavItem(Icons.home_filled, "Explore", 0),
             _buildNavItem(Icons.new_releases, "New Arrivals", 1),
-            _buildNavItem(Icons.person_rounded, "Profile", 2),
+            // _buildNavItem(Icons.person_rounded, "Profile", 2),
           ],
         ),
       ),

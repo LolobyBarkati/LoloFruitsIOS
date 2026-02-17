@@ -16,7 +16,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final TextEditingController _feedbackController = TextEditingController();
   final User? user = FirebaseAuth.instance.currentUser;
 
   bool _isLoading = true;
@@ -165,34 +164,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _submitFeedback() async {
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('You must be logged in to submit feedback')),
-      );
-      return;
-    }
-
-    final feedback = _feedbackController.text.trim();
-    if (feedback.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Feedback cannot be empty')),
-      );
-      return;
-    }
-
-    await FirebaseFirestore.instance.collection('App_feedbacks').add({
-      'email': user!.email,
-      'feedback': feedback,
-      'timestamp': Timestamp.now(),
-    });
-
-    _feedbackController.clear();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Feedback submitted successfully')),
-    );
-  }
 
   void _showSubscriptionHistory(BuildContext context) {
     showModalBottomSheet(

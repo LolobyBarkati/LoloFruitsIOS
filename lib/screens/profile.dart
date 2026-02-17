@@ -1,3 +1,4 @@
+import 'package:barkati_frits/screens/faq_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -94,6 +95,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onTap: () async {
                         final Uri emailUri = Uri(scheme: 'mailto', path: 'support@example.com');
                         if (await canLaunchUrl(emailUri)) await launchUrl(emailUri);
+                      },
+                    ),
+                    ListTile(
+                      leading:
+                          const Icon(Icons.info_outline, color: Colors.green),
+                      title: const Text('FAQs'),
+                      subtitle: const Text('Find answers to common questions'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        Navigator.pushNamed(context, FAQScreen.routeName);
                       },
                     ),
                   ],

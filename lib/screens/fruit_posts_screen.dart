@@ -20,17 +20,13 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
   bool _hasMore = true;
   int _pageSize = 12;
   QueryDocumentSnapshot? _lastDocument;
-  String _searchQuery = '';
 
   Timer? _searchDebounce;
 
-  late Future<QuerySnapshot> _exoticFruitsFuture;
 
   @override
   void initState() {
-    _exoticFruitsFuture = FirebaseFirestore.instance
-        .collection('exotic_fruits')
-        .get(); // Load once
+// Load once
     _loadInitialPosts();
     _scrollController.addListener(_onScroll);
     super.initState();
@@ -43,12 +39,6 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
     super.dispose();
   }
 
-  void _onSearchChanged(String value) {
-    _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 500), () {
-      setState(() => _searchQuery = value.trim().toLowerCase());
-    });
-  }
 
   Future<void> _loadInitialPosts() async {
     if (_isLoading) return;
@@ -127,7 +117,9 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.fruitName} Posts'),
+        title: Text('${widget.fruitName.toUpperCase()} Listings'),
+        backgroundColor: Colors.lightGreen,
+        centerTitle: true,
       ),
       body: _buildBody(),
     );

@@ -1,23 +1,15 @@
 package com.lolo.barkati
 
-import android.content.Context
-import androidx.multidex.MultiDex
+import android.view.WindowManager.LayoutParams
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugins.GeneratedPluginRegistrant
-import android.view.WindowManager.LayoutParams // Import WindowManager.LayoutParams
 
 class MainActivity : FlutterFragmentActivity() {
-    override fun attachBaseContext(base: Context?) {
-        super.attachBaseContext(base)
-        MultiDex.install(this)
-    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-        super.configureFlutterEngine(flutterEngine) // Call super.configureFlutterEngine first
-        GeneratedPluginRegistrant.registerWith(flutterEngine)
+        super.configureFlutterEngine(flutterEngine)
 
-        // Add this line to prevent screenshots and screen recording for this activity
+        // Prevent screenshots and screen recording
         window.addFlags(LayoutParams.FLAG_SECURE)
     }
 }

@@ -23,7 +23,7 @@ import 'package:barkati_frits/screens/transport_screen.dart';
 import 'package:barkati_frits/screens/subscription_screen.dart';
 import 'package:barkati_frits/screens/fingerprintauth_screen.dart';
 import 'package:barkati_frits/screens/faq_screen.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+
 import 'package:firebase_app_check/firebase_app_check.dart';
 
 import 'models/user.dart' as model;
@@ -52,12 +52,7 @@ void main() async {
   );
 
 
-  // Request notification permissions
-  await FirebaseMessaging.instance.requestPermission();
-
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    print('Received a message: ${message.notification?.title}');
-  });
+  
 
   runApp(const RootApp());
 }
@@ -85,7 +80,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Barkati Fruits',
+      title: 'LoLo Fruits',
       theme: ThemeData.light().copyWith(
         scaffoldBackgroundColor: secondarybcakgroundColor,
         appBarTheme: AppBarTheme.of(context).copyWith(

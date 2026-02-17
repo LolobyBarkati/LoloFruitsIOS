@@ -115,10 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
-            'assets/background.png',
-            fit: BoxFit.cover,
-          ),
+          
           Center(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),

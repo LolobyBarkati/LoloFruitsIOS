@@ -70,17 +70,6 @@ class _FruitsScreenState extends State<FruitsScreen> {
     });
   }
 
-  Future<List<QueryDocumentSnapshot>> _searchFruits(String query) async {
-    if (query.isEmpty) return _fruits;
-
-    return await FirebaseFirestore.instance
-        .collection('fruits')
-        .where(FieldPath.documentId, isGreaterThanOrEqualTo: query)
-        .where(FieldPath.documentId, isLessThan: query + 'z')
-        .limit(20)
-        .get()
-        .then((s) => s.docs);
-  }
 
   void _onSearchChanged(String value) {
     setState(() {
@@ -99,6 +88,8 @@ class _FruitsScreenState extends State<FruitsScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Fruits'),
+        backgroundColor: Colors.lightGreen,
+        centerTitle: true,
       ),
       body: Column(
         children: [

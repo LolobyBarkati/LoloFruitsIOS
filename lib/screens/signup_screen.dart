@@ -29,7 +29,6 @@ class _SignupScreenState extends State<SignupScreen> {
   String _countryCode = '+91';
   bool _isPhoneVerified = false;
   bool _isOtpSent = false;
-  bool _isLoading = false;
   bool _showPassword = false;
   bool _agreedToTerms = false;
   String? _verificationId;
@@ -39,7 +38,6 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> sendOtp2Factor() async {
     final phone = '$_countryCode${_phoneController.text.trim()}';
-    setState(() => _isLoading = true);
 
     final uri = Uri.parse(
         'https://2factor.in/API/V1/$_twoFactorApiKey/SMS/$phone/AUTOGEN');
@@ -51,7 +49,6 @@ class _SignupScreenState extends State<SignupScreen> {
       if (jsonResponse['Status'] == 'Success') {
         setState(() {
           _isOtpSent = true;
-          _isLoading = false;
           _verificationId = jsonResponse['Details']; // Session ID
         });
 
@@ -62,7 +59,6 @@ class _SignupScreenState extends State<SignupScreen> {
         throw jsonResponse['Details'];
       }
     } catch (e) {
-      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to send OTP: $e')),
       );
@@ -80,7 +76,6 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
 
     final uri = Uri.parse(
         'https://2factor.in/API/V1/$_twoFactorApiKey/SMS/VERIFY/$sessionId/$otp');
@@ -92,7 +87,6 @@ class _SignupScreenState extends State<SignupScreen> {
       if (jsonResponse['Status'] == 'Success') {
         setState(() {
           _isPhoneVerified = true;
-          _isLoading = false;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -102,7 +96,6 @@ class _SignupScreenState extends State<SignupScreen> {
         throw jsonResponse['Details'];
       }
     } catch (e) {
-      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('OTP verification failed: $e')),
       );
@@ -202,7 +195,6 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
 
     bool res = await _authMethods.signUpUser(
       context,
@@ -212,7 +204,6 @@ class _SignupScreenState extends State<SignupScreen> {
       phoneNumber: '$_countryCode${_phoneController.text}',
     );
 
-    setState(() => _isLoading = false);
 
     if (res) {
       final prefs = await SharedPreferences.getInstance();
@@ -234,19 +225,13 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           child: Stack(
             children: [
-              Image.asset(
-                'assets/background.png',
-                fit: BoxFit.cover,
-                width: size.width,
-                height: size.height,
-              ),
+              
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),

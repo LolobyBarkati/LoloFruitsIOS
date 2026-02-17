@@ -1,10 +1,8 @@
 import 'dart:ui';
-import 'package:barkati_frits/screens/subscription_screen.dart';
 import 'package:barkati_frits/models/subscription/subscription_status.dart';
 import 'package:barkati_frits/widgets/transport/transport_bottom.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class TransportScreen extends StatefulWidget {
   static const String routeName = '/transport';
@@ -34,6 +32,7 @@ class _TransportScreenState extends State<TransportScreen> {
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.lightGreen,
         elevation: 0,
+        centerTitle: true,
       ),
       body: Container(
         decoration: const BoxDecoration(
