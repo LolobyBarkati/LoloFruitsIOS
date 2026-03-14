@@ -1,4 +1,3 @@
-import 'package:barkati_frits/resources/auth_methods.dart';
 import 'package:barkati_frits/screens/fruit_screen.dart';
 import 'package:barkati_frits/screens/offer2edit.dart';
 import 'package:barkati_frits/screens/phoneotp_screen.dart';
@@ -25,8 +24,6 @@ import 'package:barkati_frits/screens/fingerprintauth_screen.dart';
 import 'package:barkati_frits/screens/faq_screen.dart';
 
 import 'package:firebase_app_check/firebase_app_check.dart';
-
-import 'models/user.dart' as model;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -109,23 +106,14 @@ class MyApp extends StatelessWidget {
         FAQScreen.routeName: (context) => FAQScreen(),
         ProfileScreen.routeName: (context) => const ProfileScreen(),
       },
-      home: FutureBuilder(
-        future: AuthMethods()
-            .getCurrentUser(FirebaseAuth.instance.currentUser?.uid)
-            .then((value) {
-          if (value != null) {
-            Provider.of<UserProvider>(context, listen: false).setUser(
-              model.User.fromMap(value),
-            );
-          }
-          return value;
-        }),
+      home: StreamBuilder(
+        stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const LoadingIndicator();
           }
 
-          if (snapshot.hasData) {
+          if (snapshot.hasData && snapshot.data != null) {
             // User is logged in → require fingerprint auth
             return FingerprintAuthScreen();
           }

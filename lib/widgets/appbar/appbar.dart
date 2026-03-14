@@ -20,7 +20,8 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF0F172A),
+        color: Colors.lightGreen,
+        // color: Color(0xFF0F172A),
       ),
       padding: const EdgeInsets.all(16),
       child: SafeArea(

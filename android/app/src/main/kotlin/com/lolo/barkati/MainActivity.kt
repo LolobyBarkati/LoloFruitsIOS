@@ -10,6 +10,6 @@ class MainActivity : FlutterFragmentActivity() {
         super.configureFlutterEngine(flutterEngine)
 
         // Prevent screenshots and screen recording
-        window.addFlags(LayoutParams.FLAG_SECURE)
+        // window.addFlags(LayoutParams.FLAG_SECURE)
     }
 }

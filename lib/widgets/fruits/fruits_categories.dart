@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barkati_frits/screens/fruit_screen.dart';
 import 'package:barkati_frits/screens/fruit_posts_screen.dart';
+import 'package:barkati_frits/widgets/fruits/fruit_emoji.dart' show FruitIcon;
 
 class FruitsCategoriesWidget extends StatefulWidget {
   const FruitsCategoriesWidget({super.key});
@@ -71,9 +72,8 @@ class _FruitsCategoriesWidgetState extends State<FruitsCategoriesWidget> {
                   itemBuilder: (context, index) {
                     final category = categories[index];
                     final categoryName = category.id;
-                    final fileName = assetName(categoryName);
-                    final imagePath = 'assets/fruit_banners/$fileName.jpg';
-
+                    final data = category.data() as Map<String, dynamic>;
+                    final bannerUrl = data['banner_url'] as String? ?? '';
                     return GestureDetector(
                       onTap: () {
                         Navigator.push(
@@ -87,7 +87,6 @@ class _FruitsCategoriesWidgetState extends State<FruitsCategoriesWidget> {
                         padding: const EdgeInsets.only(right: 16),
                         child: Column(
                           children: [
-                            // 🔥 SMALLER ICON (55x55)
                             Container(
                               width: 55,
                               height: 55,
@@ -96,12 +95,9 @@ class _FruitsCategoriesWidgetState extends State<FruitsCategoriesWidget> {
                                 color: Colors.grey[100],
                                 border: Border.all(color: Colors.grey.shade200, width: 1),
                               ),
-                              child: ClipOval(
-                                child: Image.asset(
-                                  imagePath,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.apple, size: 25, color: Colors.grey),
-                                ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(6),
+                                child: FruitIcon(fruitName: categoryName, size: 42, bannerUrl: bannerUrl),
                               ),
                             ),
                             const SizedBox(height: 8),

@@ -73,11 +73,14 @@ class _FingerprintAuthScreenState extends State<FingerprintAuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: isAuthenticating
-            ? const CircularProgressIndicator()
-            : const Text('Authentication Required'),
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: Center(
+          child: isAuthenticating
+              ? const CircularProgressIndicator()
+              : const Text('Authentication Required'),
+        ),
       ),
     );
   }

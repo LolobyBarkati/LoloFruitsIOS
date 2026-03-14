@@ -94,17 +94,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final imageHeight = 320.0;
-    final overlapHeight = 18.0;
+    final imageHeight = 340.0;
+    final overlapHeight = 28.0;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF9FBF9),
       body: isSubscribed == null
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF689F38)))
           : FutureBuilder<DocumentSnapshot>(
               future: _productFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator(color: Color(0xFF689F38)));
                 }
 
                 if (!snapshot.hasData || !snapshot.data!.exists) {
@@ -112,18 +113,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 }
 
                 final data = snapshot.data!.data() as Map<String, dynamic>;
-                final name =
-                    (data['fruit_name'] ?? 'Unknown').toString().toUpperCase();
+                final name = (data['fruit_name'] ?? 'Unknown').toString().toUpperCase();
 
-                // Unified handling of image_url[s] and video_url[s]
+                // Media Logic
                 final List imageUrls = (() {
-                  if (data['image_urls'] is List &&
-                      (data['image_urls'] as List).isNotEmpty) {
-                    return (data['image_urls'] as List)
-                        .map((e) => e.toString())
-                        .toList();
-                  } else if (data['image_url'] is String &&
-                      data['image_url'].isNotEmpty) {
+                  if (data['image_urls'] is List && (data['image_urls'] as List).isNotEmpty) {
+                    return (data['image_urls'] as List).map((e) => e.toString()).toList();
+                  } else if (data['image_url'] is String && data['image_url'].isNotEmpty) {
                     return [data['image_url']];
                   } else {
                     return [];
@@ -131,20 +127,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 })();
 
                 final List videoUrls = (() {
-                  if (data['video_urls'] is List &&
-                      (data['video_urls'] as List).isNotEmpty) {
-                    return (data['video_urls'] as List)
-                        .map((e) => e.toString())
-                        .toList();
-                  } else if (data['video_url'] is String &&
-                      data['video_url'].isNotEmpty) {
+                  if (data['video_urls'] is List && (data['video_urls'] as List).isNotEmpty) {
+                    return (data['video_urls'] as List).map((e) => e.toString()).toList();
+                  } else if (data['video_url'] is String && data['video_url'].isNotEmpty) {
                     return [data['video_url']];
                   } else {
                     return [];
                   }
                 })();
 
-                // Combine media for display order
                 final List<Map<String, String>> media = [
                   ...imageUrls.map((url) => {'type': 'image', 'url': url}),
                   ...videoUrls.map((url) => {'type': 'video', 'url': url}),
@@ -152,14 +143,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                 final country = data['country'] ?? 'Unknown';
                 final phone = data['phone'] ?? 'N/A';
-                final dynamic rate = data['rate'];
-                final String displayRate =
-                    rate != null ? rate.toString() : 'N/A';
-                final String coldStorageName =
-                    data['cold_storage_name'] ?? 'N/A';
+                final String displayRate = data['rate'] != null ? data['rate'].toString() : 'N/A';
+                final String coldStorageName = data['cold_storage_name'] ?? 'N/A';
 
                 return Stack(
                   children: [
+                    // --- MEDIA CAROUSEL ---
                     if (media.isNotEmpty)
                       Positioned(
                         top: 0,
@@ -174,78 +163,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 onTap: () {
                                   final current = media[_currentPage];
                                   if (current['type'] == 'image') {
-                                    showGalleryViewer(
-                                      context,
-                                      imageUrls.cast<String>(),
-                                      _currentPage < imageUrls.length
-                                          ? _currentPage
-                                          : 0,
-                                    );
+                                    showGalleryViewer(context, imageUrls.cast<String>(), _currentPage < imageUrls.length ? _currentPage : 0);
                                   } else if (current['type'] == 'video') {
                                     showVideoViewer(context, current['url']!);
                                   }
                                 },
                                 child: PageView.builder(
                                   itemCount: media.length,
-                                  controller:
-                                      PageController(initialPage: _currentPage),
-                                  onPageChanged: (index) {
-                                    setState(() {
-                                      _currentPage = index;
-                                    });
-                                  },
+                                  onPageChanged: (index) => setState(() => _currentPage = index),
                                   itemBuilder: (context, index) {
                                     final item = media[index];
                                     if (item['type'] == 'image') {
-                                      return Image.network(
-                                        item['url']!,
-                                        fit: BoxFit.cover,
-                                        height: imageHeight,
-                                        width: double.infinity,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          return Container(
-                                            color: Colors.grey[300],
-                                            child: const Icon(
-                                              Icons.broken_image,
-                                              size: 50,
-                                              color: Colors.grey,
-                                            ),
-                                          );
-                                        },
-                                      );
-                                    } else if (item['type'] == 'video') {
-                                      return VideoThumbnail(
-                                        url: item['url']!,
-                                        height: imageHeight,
-                                      );
+                                      return Image.network(item['url']!, fit: BoxFit.cover, height: imageHeight);
                                     } else {
-                                      return const SizedBox();
+                                      return VideoThumbnail(url: item['url']!, height: imageHeight);
                                     }
                                   },
                                 ),
                               ),
                               if (media.length > 1)
                                 Padding(
-                                  padding: const EdgeInsets.only(bottom: 10.0),
+                                  padding: const EdgeInsets.only(bottom: 45.0),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: List.generate(
                                       media.length,
                                       (index) => AnimatedContainer(
-                                        duration:
-                                            const Duration(milliseconds: 150),
-                                        margin: const EdgeInsets.symmetric(
-                                            horizontal: 4.0),
-                                        height: 8.0,
-                                        width:
-                                            _currentPage == index ? 24.0 : 8.0,
+                                        duration: const Duration(milliseconds: 150),
+                                        margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                                        height: 6.0,
+                                        width: _currentPage == index ? 18.0 : 6.0,
                                         decoration: BoxDecoration(
-                                          color: _currentPage == index
-                                              ? Colors.white
-                                              : Colors.white54,
-                                          borderRadius:
-                                              BorderRadius.circular(4.0),
+                                          color: _currentPage == index ? Colors.white : Colors.white54,
+                                          borderRadius: BorderRadius.circular(3.0),
                                         ),
                                       ),
                                     ),
@@ -255,197 +205,109 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                         ),
                       ),
+
+                    // --- CONTENT PANEL ---
                     Positioned(
                       top: imageHeight - overlapHeight,
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 0.0),
-                        child: ClipRRect(
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(36),
-                            topRight: Radius.circular(36),
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(32),
+                            topRight: Radius.circular(32),
                           ),
-                          child: Container(
-                            color: Colors.white,
-                            padding: const EdgeInsets.all(12.0),
-                            child: SingleChildScrollView(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        ),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1B3022), letterSpacing: -0.5)),
+                              const SizedBox(height: 6),
+                              Row(
                                 children: [
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    name,
-                                    style: const TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  const Icon(Icons.location_on_rounded, color: Color(0xFF8BC34A), size: 18),
+                                  const SizedBox(width: 4),
+                                  Text(country, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                              
+                              if (isSubscribed!) ...[
+                                _buildDetailCard(icon: Icons.ac_unit_rounded, label: "COLD STORAGE", value: coldStorageName, 
+                                  onTap: () async {
+                                    if (coldStorageName != 'N/A' && coldStorageName.isNotEmpty) {
+                                      bool exists = await _doesColdStorageExist(coldStorageName);
+                                      if (exists) {
+                                        Navigator.push(context, MaterialPageRoute(builder: (context) => StorageScreen(initialStorageName: coldStorageName)));
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Storage not registered.")));
+                                      }
+                                    }
+                                  },
+                                  trailingIcon: Icons.arrow_forward_ios,
+                                ),
+                                _buildDetailCard(icon: Icons.business_rounded, label: "COMPANY NAME", value: data['company_name'] ?? 'N/A'),
+                                _buildDetailRow(Icons.person_rounded, "OWNER", data['owner_name'] ?? 'N/A'),
+                                _buildDetailRow(Icons.supervisor_account_rounded, "MANAGER", data['manager_name'] ?? 'N/A'),
+                                _buildDetailCard(icon: Icons.price_change_rounded, label: "APPROXIMATE PRICE", value: displayRate, iconColor: Colors.orange.shade700),
+                                _buildDetailCard(icon: Icons.phone_enabled_rounded, label: "CONTACT OWNER", value: phone, onTap: () => _callOwner(phone), trailingIcon: Icons.call, highlight: true),
+                              ] else ...[
+                                // Lock UI
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(24),
+                                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
                                   ),
-                                  const SizedBox(height: 6),
-                                  Row(
+                                  child: Column(
                                     children: [
-                                      const Icon(Icons.location_on,
-                                          color: Colors.grey, size: 16),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        country,
-                                        style:
-                                            const TextStyle(color: Colors.grey),
+                                      Container(
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: const BoxDecoration(color: Color(0xFFF1F8E9), shape: BoxShape.circle),
+                                        child: const Icon(Icons.lock_person_rounded, size: 32, color: Color(0xFF689F38)),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      const Text("Member Exclusive", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                                      const SizedBox(height: 8),
+                                      const Text("Pricing, storage details, and direct contact numbers are only available to subscribed members.",
+                                        textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, height: 1.4)),
+                                      const SizedBox(height: 24),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        height: 54,
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFF689F38),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                            elevation: 0,
+                                          ),
+                                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionScreen())),
+                                          child: const Text("Unlock Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                        ),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 12),
-                                  if (isSubscribed!) ...[
-                                    const SizedBox(height: 6),
-                                    _buildDetailCard(
-                                      icon: Icons.ac_unit,
-                                      label: "Cold Storage",
-                                      value: coldStorageName,
-                                      onTap: () async {
-                                        if (coldStorageName == 'N/A' ||
-                                            coldStorageName.isEmpty) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            const SnackBar(
-                                                content: Text(
-                                                    "Cold Storage information not available.")),
-                                          );
-                                        } else {
-                                          bool exists =
-                                              await _doesColdStorageExist(
-                                                  coldStorageName);
-                                          if (exists) {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    StorageScreen(
-                                                  initialStorageName:
-                                                      coldStorageName,
-                                                ),
-                                              ),
-                                            );
-                                          } else {
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              const SnackBar(
-                                                  content: Text(
-                                                      "Storage not registered in database.")),
-                                            );
-                                          }
-                                        }
-                                      },
-                                      trailingIcon: Icons.arrow_forward_ios,
-                                    ),
-                                    const SizedBox(height: 6),
-                                    _buildDetailCard(
-                                      icon: Icons.business,
-                                      label: "Company",
-                                      value: data['company_name'] ?? 'N/A',
-                                    ),
-                                    const SizedBox(height: 6),
-                                    _buildDetailCard(
-                                      icon: Icons.person,
-                                      label: "Owner",
-                                      value: data['owner_name'] ?? 'N/A',
-                                    ),
-                                    const SizedBox(height: 6),
-                                    _buildDetailCard(
-                                      icon: Icons.supervisor_account,
-                                      label: "Manager",
-                                      value: data['manager_name'] ?? 'N/A',
-                                    ),
-                                    const SizedBox(height: 6),
-                                    _buildDetailCard(
-                                      icon: Icons.price_change_outlined,
-                                      label: "Approximate Price",
-                                      value: displayRate,
-                                    ),
-                                  ],
-                                  const SizedBox(height: 6),
-                                  if (isSubscribed!)
-                                    _buildDetailCard(
-                                      icon: Icons.phone_outlined,
-                                      label: "Phone",
-                                      value: phone,
-                                      onTap: () => _callOwner(phone),
-                                      trailingIcon: Icons.call,
-                                    ),
-                                  if (!isSubscribed!) ...[
-                                    const SizedBox(height: 18),
-                                    Container(
-                                      padding: const EdgeInsets.all(14),
-                                      decoration: BoxDecoration(
-                                        color: Colors.orange.shade100,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            "Unlock Full Details",
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.orange,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          const Text(
-                                            "Subscribe now to see the price, contact information, and location of this product.",
-                                            style:
-                                                TextStyle(color: Colors.grey),
-                                          ),
-                                          const SizedBox(height: 10),
-                                          SizedBox(
-                                            width: double.infinity,
-                                            child: ElevatedButton(
-                                              onPressed: () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (_) =>
-                                                        const SubscriptionScreen(),
-                                                  ),
-                                                );
-                                              },
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.orange,
-                                                foregroundColor: Colors.white,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 12),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                              ),
-                                              child: const Text(
-                                                  "Buy Subscription"),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
+                                ),
+                              ],
+                              const SizedBox(height: 30),
+                            ],
                           ),
                         ),
                       ),
                     ),
+
+                    // Back Button
                     Positioned(
-                      top: 16,
+                      top: 45,
                       left: 16,
                       child: CircleAvatar(
-                        backgroundColor: Colors.black.withOpacity(0.5),
-                        child: IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white),
-                          onPressed: () => Navigator.pop(context),
-                        ),
+                        backgroundColor: Colors.black.withOpacity(0.4),
+                        child: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18), onPressed: () => Navigator.pop(context)),
                       ),
                     ),
                   ],
@@ -455,93 +317,75 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildDetailCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    VoidCallback? onTap,
-    IconData? trailingIcon,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.blueGrey),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: Colors.blueGrey,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ],
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: Colors.grey),
+          const SizedBox(width: 12),
+          Text("$label: ", style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailCard({required IconData icon, required String label, required String value, VoidCallback? onTap, IconData? trailingIcon, Color? iconColor, bool highlight = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: highlight ? const Color(0xFFF1F8E9) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: highlight ? const Color(0xFF8BC34A).withOpacity(0.3) : Colors.grey.shade100),
+            boxShadow: [if(!highlight) BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))],
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: iconColor ?? const Color(0xFF689F38), size: 24),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 10, letterSpacing: 0.5)),
+                    const SizedBox(height: 2),
+                    Text(value, style: TextStyle(fontSize: 16, fontWeight: highlight ? FontWeight.w900 : FontWeight.w700, color: const Color(0xFF1B3022))),
+                  ],
+                ),
               ),
-            ),
-            if (trailingIcon != null)
-              Icon(trailingIcon, size: 20, color: Colors.grey),
-          ],
+              if (trailingIcon != null) Icon(trailingIcon, size: 16, color: highlight ? const Color(0xFF689F38) : Colors.grey),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
+// --- HELPER CLASSES & FUNCTIONS ---
+
 void showGalleryViewer(BuildContext context, List<String> imageUrls, int initialIndex) {
-  showDialog(
-    context: context,
-    builder: (_) => Dialog(
-      backgroundColor: Colors.black,
-      insetPadding: EdgeInsets.zero,
-      child: GalleryPhotoViewWrapper(
-        galleryItems: imageUrls,
-        initialIndex: initialIndex,
-      ),
-    ),
-  );
+  showDialog(context: context, builder: (_) => Dialog(backgroundColor: Colors.black, insetPadding: EdgeInsets.zero, child: GalleryPhotoViewWrapper(galleryItems: imageUrls, initialIndex: initialIndex)));
 }
 
 class GalleryPhotoViewWrapper extends StatefulWidget {
   final List<String> galleryItems;
   final int initialIndex;
-
-  const GalleryPhotoViewWrapper({
-    Key? key,
-    required this.galleryItems,
-    this.initialIndex = 0,
-  }) : super(key: key);
-
+  const GalleryPhotoViewWrapper({Key? key, required this.galleryItems, this.initialIndex = 0}) : super(key: key);
   @override
-  _GalleryPhotoViewWrapperState createState() =>
-      _GalleryPhotoViewWrapperState();
+  _GalleryPhotoViewWrapperState createState() => _GalleryPhotoViewWrapperState();
 }
 
 class _GalleryPhotoViewWrapperState extends State<GalleryPhotoViewWrapper> {
   late int currentIndex;
-
   @override
-  void initState() {
-    super.initState();
-    currentIndex = widget.initialIndex;
-  }
-
+  void initState() { super.initState(); currentIndex = widget.initialIndex; }
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -549,58 +393,23 @@ class _GalleryPhotoViewWrapperState extends State<GalleryPhotoViewWrapper> {
         PhotoViewGallery.builder(
           itemCount: widget.galleryItems.length,
           pageController: PageController(initialPage: widget.initialIndex),
-          builder: (context, index) {
-            return PhotoViewGalleryPageOptions(
-              imageProvider: NetworkImage(widget.galleryItems[index]),
-              minScale: PhotoViewComputedScale.contained,
-              maxScale: PhotoViewComputedScale.covered * 2,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: Colors.grey[300],
-                  child: const Icon(
-                    Icons.broken_image,
-                    size: 50,
-                    color: Colors.grey,
-                  ),
-                );
-              },
-            );
-          },
-          onPageChanged: (index) {
-            setState(() {
-              currentIndex = index;
-            });
-          },
+          builder: (context, index) => PhotoViewGalleryPageOptions(imageProvider: NetworkImage(widget.galleryItems[index]), minScale: PhotoViewComputedScale.contained, maxScale: PhotoViewComputedScale.covered * 2),
+          onPageChanged: (index) => setState(() => currentIndex = index),
           backgroundDecoration: const BoxDecoration(color: Colors.black),
         ),
-        Positioned(
-          top: 40,
-          right: 20,
-          child: IconButton(
-            icon: const Icon(Icons.close, color: Colors.white, size: 30),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
+        Positioned(top: 40, right: 20, child: CircleAvatar(backgroundColor: Colors.black45, child: IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.of(context).pop()))),
       ],
     );
   }
 }
 
 void showVideoViewer(BuildContext context, String videoUrl) {
-  showDialog(
-    context: context,
-    builder: (_) => Dialog(
-      backgroundColor: Colors.black,
-      insetPadding: EdgeInsets.all(0),
-      child: _VideoPlayerFullScreen(url: videoUrl),
-    ),
-  );
+  showDialog(context: context, builder: (_) => Dialog(backgroundColor: Colors.black, insetPadding: EdgeInsets.zero, child: _VideoPlayerFullScreen(url: videoUrl)));
 }
 
 class _VideoPlayerFullScreen extends StatefulWidget {
   final String url;
   const _VideoPlayerFullScreen({required this.url});
-
   @override
   State<_VideoPlayerFullScreen> createState() => _VideoPlayerFullScreenState();
 }
@@ -609,59 +418,31 @@ class _VideoPlayerFullScreenState extends State<_VideoPlayerFullScreen> {
   late VideoPlayerController _controller;
   ChewieController? _chewieController;
   bool _isReady = false;
-
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.network(widget.url)
-      ..initialize().then((_) {
-        setState(() {
-          _isReady = true;
-        });
-        _chewieController = ChewieController(
-          videoPlayerController: _controller,
-          autoPlay: true,
-          looping: true,
-          allowedScreenSleep: false,
-        );
-      });
+    _controller = VideoPlayerController.network(widget.url)..initialize().then((_) {
+      setState(() => _isReady = true);
+      _chewieController = ChewieController(videoPlayerController: _controller, autoPlay: true, looping: true, allowedScreenSleep: false);
+    });
   }
-
   @override
-  void dispose() {
-    _chewieController?.dispose();
-    _controller.dispose();
-    super.dispose();
-  }
-
+  void dispose() { _chewieController?.dispose(); _controller.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Center(
-          child: _isReady && _chewieController != null
-              ? Chewie(controller: _chewieController!)
-              : const CircularProgressIndicator(),
-        ),
-        Positioned(
-          top: 40,
-          right: 20,
-          child: IconButton(
-            icon: const Icon(Icons.close, color: Colors.white, size: 30),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
+        Center(child: _isReady && _chewieController != null ? Chewie(controller: _chewieController!) : const CircularProgressIndicator(color: Colors.white)),
+        Positioned(top: 40, right: 20, child: CircleAvatar(backgroundColor: Colors.black45, child: IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.of(context).pop()))),
       ],
     );
   }
 }
 
-// Thumbnail widget for video preview (shows play icon)
 class VideoThumbnail extends StatefulWidget {
   final String url;
   final double height;
-  const VideoThumbnail({required this.url, required this.height});
-
+  const VideoThumbnail({required this.url, required this.height, Key? key}) : super(key: key);
   @override
   State<VideoThumbnail> createState() => _VideoThumbnailState();
 }
@@ -669,59 +450,22 @@ class VideoThumbnail extends StatefulWidget {
 class _VideoThumbnailState extends State<VideoThumbnail> {
   VideoPlayerController? _controller;
   bool _initialized = false;
-
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.network(widget.url)
-      ..initialize().then((_) {
-        if (mounted) setState(() => _initialized = true);
-        _controller?.setVolume(0);
-        _controller?.pause();
-      });
+    _controller = VideoPlayerController.network(widget.url)..initialize().then((_) {
+      if (mounted) setState(() => _initialized = true);
+      _controller?.setVolume(0); _controller?.pause();
+    });
   }
-
   @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
+  void dispose() { _controller?.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Container(
-          height: widget.height,
-          width: double.infinity,
-          color: Colors.black12,
-          child: _initialized
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(5),
-                  child: AspectRatio(
-                    aspectRatio: _controller!.value.aspectRatio,
-                    child: VideoPlayer(_controller!),
-                  ),
-                )
-              : const Center(
-                  child: CircularProgressIndicator(),
-                ),
-        ),
-        Positioned.fill(
-          child: Center(
-            child: Icon(
-              Icons.play_circle_fill,
-              size: 70,
-              color: Colors.white70,
-              shadows: [
-                Shadow(
-                    color: Colors.black54,
-                    blurRadius: 12,
-                    offset: Offset(0, 3)),
-              ],
-            ),
-          ),
-        ),
+        Container(height: widget.height, width: double.infinity, color: Colors.black12, child: _initialized ? AspectRatio(aspectRatio: _controller!.value.aspectRatio, child: VideoPlayer(_controller!)) : const Center(child: CircularProgressIndicator())),
+        const Positioned.fill(child: Center(child: Icon(Icons.play_circle_fill, size: 70, color: Colors.white70))),
       ],
     );
   }

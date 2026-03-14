@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import '../providers/subscription_provider.dart';
 
 class SubscriptionScreen extends StatefulWidget {
@@ -101,9 +102,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
           _buildFeaturesGrid(),
           const SizedBox(height: 40),
           if (!controller.isActive) ...[
-            _buildPlanCard(controller.plans[0], false),
-            const SizedBox(height: 16),
-            _buildPlanCard(controller.plans[1], true),
+            if (controller.monthlyProduct != null)
+              _buildPlanCard(controller.monthlyProduct!, false),
+            if (controller.monthlyProduct != null && controller.yearlyProduct != null)
+              const SizedBox(height: 16),
+            if (controller.yearlyProduct != null)
+              _buildPlanCard(controller.yearlyProduct!, true),
+            if (controller.monthlyProduct == null && controller.yearlyProduct == null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  'Plans unavailable. Check your connection.',
+                  style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                ),
+              ),
           ],
           const SizedBox(height: 40),
         ],
@@ -197,24 +209,25 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
     );
   }
 
-  Widget _buildPlanCard(Map<String, dynamic> plan, bool isRecommended) {
+  Widget _buildPlanCard(ProductDetails product, bool isRecommended) {
+    final isYearly = product.id == 'premium_access_yearly';
     return InkWell(
-      onTap: () => _controller?.openCheckout(isRecommended),
+      onTap: () => _controller?.buySubscription(product),
       borderRadius: BorderRadius.circular(24),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
+          color: Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isRecommended ? Colors.amber : Colors.white.withOpacity(0.1),
+            color: isRecommended ? Colors.amber : Colors.white.withValues(alpha: 0.1),
             width: isRecommended ? 2 : 1,
           ),
           boxShadow: isRecommended
               ? [
                   BoxShadow(
-                      color: Colors.amber.withOpacity(0.3),
+                      color: Colors.amber.withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 10))
                 ]
@@ -233,7 +246,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                             fontWeight: FontWeight.w900,
                             color: Colors.amber)),
                   Text(
-                    plan['name'],
+                    product.title,
                     style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -241,9 +254,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    plan['description'],
+                    product.description,
                     style: TextStyle(
-                        fontSize: 13, color: Colors.white.withOpacity(0.6)),
+                        fontSize: 13, color: Colors.white.withValues(alpha: 0.6)),
                   ),
                 ],
               ),
@@ -252,16 +265,16 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  "₹${plan['price']}",
+                  product.price,
                   style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
                       color: Colors.white),
                 ),
                 Text(
-                  isRecommended ? "/year" : "/month",
+                  isYearly ? "/year" : "/month",
                   style: TextStyle(
-                      fontSize: 12, color: Colors.white.withOpacity(0.5)),
+                      fontSize: 12, color: Colors.white.withValues(alpha: 0.5)),
                 ),
               ],
             ),

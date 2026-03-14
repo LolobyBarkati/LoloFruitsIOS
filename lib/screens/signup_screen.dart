@@ -31,16 +31,14 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isOtpSent = false;
   bool _showPassword = false;
   bool _agreedToTerms = false;
+  bool _isLoading = false;
   String? _verificationId;
 
-  final String _twoFactorApiKey =
-      '7e388030-6e57-11f0-a562-0200cd936042'; // TODO: Replace
+  final String _twoFactorApiKey = '7e388030-6e57-11f0-a562-0200cd936042';
 
   Future<void> sendOtp2Factor() async {
     final phone = '$_countryCode${_phoneController.text.trim()}';
-
-    final uri = Uri.parse(
-        'https://2factor.in/API/V1/$_twoFactorApiKey/SMS/$phone/AUTOGEN');
+    final uri = Uri.parse('https://2factor.in/API/V1/$_twoFactorApiKey/SMS/$phone/AUTOGEN');
 
     try {
       final response = await http.get(uri);
@@ -49,18 +47,17 @@ class _SignupScreenState extends State<SignupScreen> {
       if (jsonResponse['Status'] == 'Success') {
         setState(() {
           _isOtpSent = true;
-          _verificationId = jsonResponse['Details']; // Session ID
+          _verificationId = jsonResponse['Details'];
         });
-
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('OTP sent via 2Factor!')),
+          const SnackBar(content: Text('OTP sent successfully!'), backgroundColor: Color(0xFF689F38)),
         );
       } else {
         throw jsonResponse['Details'];
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send OTP: $e')),
+        SnackBar(content: Text('Failed to send OTP: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -69,57 +66,37 @@ class _SignupScreenState extends State<SignupScreen> {
     final otp = _otpController.text.trim();
     final sessionId = _verificationId;
 
-    if (sessionId == null || otp.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter the OTP.')),
-      );
-      return;
-    }
+    if (sessionId == null || otp.isEmpty) return;
 
-
-    final uri = Uri.parse(
-        'https://2factor.in/API/V1/$_twoFactorApiKey/SMS/VERIFY/$sessionId/$otp');
+    final uri = Uri.parse('https://2factor.in/API/V1/$_twoFactorApiKey/SMS/VERIFY/$sessionId/$otp');
 
     try {
       final response = await http.get(uri);
       final jsonResponse = json.decode(response.body);
 
       if (jsonResponse['Status'] == 'Success') {
-        setState(() {
-          _isPhoneVerified = true;
-        });
-
+        setState(() => _isPhoneVerified = true);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Phone verified successfully!')),
+          const SnackBar(content: Text('Phone verified!'), backgroundColor: Color(0xFF689F38)),
         );
       } else {
         throw jsonResponse['Details'];
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('OTP verification failed: $e')),
+        SnackBar(content: Text('Verification failed: $e'), backgroundColor: Colors.red),
       );
     }
   }
 
   void signUpUser() async {
     if (!_isPhoneVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please verify your phone number first."),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Verify phone first."), backgroundColor: Colors.red));
       return;
     }
 
     if (!_agreedToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("You must agree to the Terms and Conditions."),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Agree to Terms and Conditions."), backgroundColor: Colors.red));
       return;
     }
 
@@ -131,51 +108,19 @@ class _SignupScreenState extends State<SignupScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text("Terms of Use for Screen Recording"),
-              content: SizedBox(
-                height: 300,
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const Text(
-                        "This app may capture screen activity including sensitive content such as passwords, payment info, messages, and audio. "
-                        "By proceeding, you confirm that you understand and agree to use this feature legally and at your own risk. "
-                        "Improper use may result in penalties under applicable laws. You also agree to indemnify the service provider "
-                        "from any liabilities arising from misuse.",
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: _dialogAgreed,
-                            onChanged: (val) {
-                              setState(() {
-                                _dialogAgreed = val!;
-                              });
-                            },
-                          ),
-                          const Expanded(
-                            child: Text(
-                              "I have read and agree to the Terms of Use for Screen Recording.",
-                              style: TextStyle(fontSize: 13),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: const Text("Terms of Use", style: TextStyle(fontWeight: FontWeight.bold)),
+              content: const SingleChildScrollView(
+                child: Text(
+                  "This app may capture screen activity including sensitive content such as passwords, payment info, messages, and audio. By proceeding, you agree to use this feature legally.",
+                  style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
               ),
               actions: [
+                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Disagree", style: TextStyle(color: Colors.red))),
                 TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text("Disagree"),
-                ),
-                TextButton(
-                  onPressed:
-                      _dialogAgreed ? () => Navigator.pop(context, true) : null,
-                  child: const Text("Agree"),
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text("Agree", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF33691E))),
                 ),
               ],
             );
@@ -184,18 +129,9 @@ class _SignupScreenState extends State<SignupScreen> {
       },
     );
 
-    if (accepted != true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text("You must agree to the screen recording terms to continue."),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+    if (accepted != true) return;
 
-
+    setState(() => _isLoading = true);
     bool res = await _authMethods.signUpUser(
       context,
       _emailController.text,
@@ -203,7 +139,7 @@ class _SignupScreenState extends State<SignupScreen> {
       _passwordController.text,
       phoneNumber: '$_countryCode${_phoneController.text}',
     );
-
+    setState(() => _isLoading = false);
 
     if (res) {
       final prefs = await SharedPreferences.getInstance();
@@ -225,168 +161,178 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const primaryLightGreen = Color(0xFF8BC34A);
+    const secondaryDarkGreen = Color(0xFF33691E);
+    const accentLime = Color(0xFFD4E157);
 
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Stack(
-            children: [
-              
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Getting Started ',
-                              style: TextStyle(
-                                fontSize: 30,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Sign up to continue!',
-                              style:
-                                  TextStyle(fontSize: 14, color: Colors.black),
-                            ),
-                            const SizedBox(height: 8),
-                            CustomTextField(
-                              controller: _emailController,
-                              hintText: "Email",
-                              prefixIcon: const Icon(Icons.email_outlined),
-                            ),
-                            const SizedBox(height: 16),
-                            CustomTextField(
-                              controller: _usernameController,
-                              hintText: "Username",
-                              prefixIcon: const Icon(Icons.person),
-                            ),
-                            const SizedBox(height: 16),
-                            CustomTextField(
-                              controller: _passwordController,
-                              hintText: "Password",
-                              obscureText: !_showPassword,
-                              prefixIcon: const Icon(Icons.lock_outline),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _showPassword
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
+      body: Stack(
+        children: [
+          // 1. Light Green Gradient Background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                colors: [accentLime, primaryLightGreen, secondaryDarkGreen],
+              ),
+            ),
+          ),
+          
+          // 2. Decorative Icon
+          Positioned(
+            top: -50,
+            right: -50,
+            child: Opacity(opacity: 0.1, child: const Icon(Icons.eco_rounded, size: 300, color: Colors.white)),
+          ),
+
+          // 3. Form Content
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: Column(
+                  children: [
+                    const Text('Join Lolo Fruits', 
+                      style: TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900, letterSpacing: -1.5)),
+                    const SizedBox(height: 25),
+                    
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(32),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                        child: Container(
+                          padding: const EdgeInsets.all(28.0),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.92),
+                            borderRadius: BorderRadius.circular(32),
+                            border: Border.all(color: Colors.white.withOpacity(0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Create Account', 
+                                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: secondaryDarkGreen)),
+                              const SizedBox(height: 25),
+                              
+                              CustomTextField(controller: _usernameController, hintText: "Username", prefixIcon: const Icon(Icons.person_outline, color: primaryLightGreen)),
+                              const SizedBox(height: 16),
+                              
+                              CustomTextField(controller: _emailController, hintText: "Email", prefixIcon: const Icon(Icons.email_outlined, color: primaryLightGreen)),
+                              const SizedBox(height: 16),
+                              
+                              CustomTextField(
+                                controller: _passwordController,
+                                hintText: "Password",
+                                obscureText: !_showPassword,
+                                prefixIcon: const Icon(Icons.lock_outline, color: primaryLightGreen),
+                                suffixIcon: IconButton(
+                                  icon: Icon(_showPassword ? Icons.visibility : Icons.visibility_off, color: Colors.grey, size: 20),
+                                  onPressed: () => setState(() => _showPassword = !_showPassword),
                                 ),
-                                onPressed: () {
-                                  setState(() {
-                                    _showPassword = !_showPassword;
-                                  });
-                                },
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey.shade300),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: IntlPhoneField(
-                                controller: _phoneController,
-                                initialCountryCode: 'IN',
-                                decoration: InputDecoration(
-                                  labelText: 'Phone Number',
-                                  border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 15),
+                              const SizedBox(height: 16),
+
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F4F2),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                onChanged: (phone) {
-                                  setState(() {
-                                    _countryCode = phone.countryCode;
-                                    _isPhoneVerified = false;
-                                    _isOtpSent = false;
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                ElevatedButton(
-                                  onPressed: _isOtpSent
-                                      ? null
-                                      : () {
-                                          if (_phoneController.text.isNotEmpty)
-                                            sendOtp2Factor();
-                                        },
-                                  child: const Text('Send OTP'),
-                                ),
-                                const SizedBox(width: 8),
-                                if (_isOtpSent)
-                                  Expanded(
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: TextField(
-                                            controller: _otpController,
-                                            decoration: const InputDecoration(
-                                                labelText: 'Enter OTP'),
-                                          ),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            if (_otpController.text.isNotEmpty)
-                                              verifyOtp2Factor();
-                                          },
-                                          child: const Text('Verify'),
-                                        ),
-                                      ],
-                                    ),
+                                child: IntlPhoneField(
+                                  controller: _phoneController,
+                                  initialCountryCode: 'IN',
+                                  style: const TextStyle(fontSize: 15),
+                                  dropdownIconPosition: IconPosition.trailing,
+                                  decoration: const InputDecoration(
+                                    hintText: 'Phone Number',
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 15),
                                   ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Checkbox(
-                                  value: _agreedToTerms,
-                                  onChanged: (value) {
+                                  onChanged: (phone) {
                                     setState(() {
-                                      _agreedToTerms = value ?? false;
+                                      _countryCode = phone.countryCode;
+                                      _isPhoneVerified = false;
+                                      _isOtpSent = false;
                                     });
                                   },
                                 ),
-                                const Expanded(
-                                  child: Text(
-                                    "I agree to the Terms and Conditions of the app.",
-                                    style: TextStyle(fontSize: 13),
+                              ),
+                              const SizedBox(height: 16),
+
+                              if (!_isPhoneVerified) ...[
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: CustomButton(
+                                    onTap: _isOtpSent ? null : sendOtp2Factor,
+                                    text: _isOtpSent ? 'OTP SENT' : 'SEND OTP',
+                                    backgroundColor: _isOtpSent ? Colors.grey : secondaryDarkGreen,
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            CustomButton(
-                              onTap: _isPhoneVerified ? signUpUser : null,
-                              text: 'SIGN UP',
-                            ),
-                          ],
+                                if (_isOtpSent) ...[
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: CustomTextField(controller: _otpController, hintText: "Enter OTP", prefixIcon: const Icon(Icons.pin, color: primaryLightGreen)),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      IconButton.filled(
+                                        onPressed: verifyOtp2Factor,
+                                        icon: const Icon(Icons.check_circle_rounded),
+                                        style: IconButton.styleFrom(backgroundColor: Colors.orange),
+                                      )
+                                    ],
+                                  ),
+                                ],
+                              ] else 
+                                Center(
+                                  child: Chip(
+                                    label: const Text("Phone Verified"),
+                                    avatar: const Icon(Icons.verified, color: Colors.white, size: 16),
+                                    backgroundColor: primaryLightGreen,
+                                    labelStyle: const TextStyle(color: Colors.white),
+                                  ),
+                                ),
+
+                              const SizedBox(height: 12),
+                              CheckboxListTile(
+                                value: _agreedToTerms,
+                                title: const Text("Agree to App Terms", style: TextStyle(fontSize: 12)),
+                                onChanged: (val) => setState(() => _agreedToTerms = val!),
+                                contentPadding: EdgeInsets.zero,
+                                controlAffinity: ListTileControlAffinity.leading,
+                                activeColor: primaryLightGreen,
+                              ),
+                              const SizedBox(height: 12),
+                              
+                              _isLoading 
+                                ? const Center(child: CircularProgressIndicator(color: secondaryDarkGreen))
+                                : SizedBox(
+                                    width: double.infinity,
+                                    child: CustomButton(
+                                      onTap: (_isPhoneVerified && _agreedToTerms) ? signUpUser : null,
+                                      text: 'CREATE ACCOUNT',
+                                      backgroundColor: (_isPhoneVerified && _agreedToTerms) ? secondaryDarkGreen : Colors.grey,
+                                      textColor: Colors.white,
+                                    ),
+                                  ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 30),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Text("Already have an account? Login", 
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
