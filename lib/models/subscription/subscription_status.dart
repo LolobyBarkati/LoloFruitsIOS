@@ -20,6 +20,8 @@ class SubscriptionWrapper extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection("payments")
           .where("userId", isEqualTo: user.uid)
+          .orderBy("timestamp", descending: true)
+          .limit(1)
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {

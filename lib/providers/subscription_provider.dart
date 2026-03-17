@@ -4,7 +4,8 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class SubscriptionController {
+class SubscriptionController with WidgetsBindingObserver {
+
   final BuildContext context;
   final Function(bool) onLoadingChanged;
   final VoidCallback onStateUpdate;
@@ -18,7 +19,6 @@ class SubscriptionController {
   final InAppPurchase _iap = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _subscription;
 
-  /// TWO product IDs
   final Set<String> _productIds = {
     "premium_access",
     "premium_access_yearly",
@@ -31,35 +31,38 @@ class SubscriptionController {
   ProductDetails? monthlyProduct;
   ProductDetails? yearlyProduct;
 
+  /// INIT
   Future<void> init() async {
+
     onLoadingChanged(true);
+
+    WidgetsBinding.instance.addObserver(this);
 
     final available = await _iap.isAvailable();
 
     if (!available) {
-      debugPrint("Play Billing not available");
       onLoadingChanged(false);
       return;
     }
 
     await _loadProducts();
+
     _listenPurchaseUpdates();
-    await _restorePurchases();
+
     await checkPaymentStatus();
 
     onLoadingChanged(false);
   }
 
+  /// LOAD PRODUCTS
   Future<void> _loadProducts() async {
-    final response = await _iap.queryProductDetails(_productIds);
 
-    if (response.notFoundIDs.isNotEmpty) {
-      debugPrint("Products not found: ${response.notFoundIDs}");
-    }
+    final response = await _iap.queryProductDetails(_productIds);
 
     products = response.productDetails;
 
     for (var product in products) {
+
       if (product.id == "premium_access") {
         monthlyProduct = product;
       }
@@ -67,77 +70,95 @@ class SubscriptionController {
       if (product.id == "premium_access_yearly") {
         yearlyProduct = product;
       }
+
     }
 
     onStateUpdate();
   }
 
+  /// PURCHASE LISTENER
   void _listenPurchaseUpdates() {
-    _subscription = _iap.purchaseStream.listen((purchases) {
+
+    _subscription = _iap.purchaseStream.listen((purchases) async {
+
       for (final purchase in purchases) {
+
+        /// ONLY process real purchase
         if (purchase.status == PurchaseStatus.purchased) {
-          _handleSuccessfulPurchase(purchase);
+
+          await _handlePurchase(purchase);
+
         }
 
-        if (purchase.status == PurchaseStatus.error) {
-          debugPrint("Purchase Error: ${purchase.error}");
+        if (purchase.pendingCompletePurchase) {
+          await _iap.completePurchase(purchase);
         }
+
       }
+
     });
   }
 
+  /// BUY SUBSCRIPTION
   Future<void> buySubscription(ProductDetails product) async {
+
     final purchaseParam = PurchaseParam(productDetails: product);
 
     await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+
   }
 
-  Future<void> _restorePurchases() async {
-    await _iap.restorePurchases();
-  }
+  /// HANDLE PURCHASE
+  Future<void> _handlePurchase(PurchaseDetails purchase) async {
 
-  Future<void> _handleSuccessfulPurchase(PurchaseDetails purchase) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    /// Prevent duplicate purchase records
+    final existing = await FirebaseFirestore.instance
+        .collection('payments')
+        .where('paymentId', isEqualTo: purchase.purchaseID)
+        .limit(1)
+        .get();
+
+    if (existing.docs.isNotEmpty) {
+      return;
+    }
+
     final now = DateTime.now();
 
-    /// Detect plan type
-    bool isYearly = purchase.productID == "premium_access_yearly";
+    final isYearly = purchase.productID == "premium_access_yearly";
 
     final expiry = now.add(
       Duration(days: isYearly ? 365 : 30),
     );
 
-    await FirebaseFirestore.instance.collection("payments").add({
+    await FirebaseFirestore.instance.collection('payments').add({
+
       "userId": user.uid,
       "email": user.email,
-      "name": user.displayName ?? "",
       "paymentId": purchase.purchaseID,
-      "orderId": purchase.purchaseID,
+      "productId": purchase.productID,
+      "purchaseToken": purchase.verificationData.serverVerificationData,
+
       "plan": isYearly ? "yearly" : "monthly",
-      "amount": 0,
       "status": true,
       "subscription_date": now,
       "subscription_expiry": expiry,
-      "timestamp": now,
+      "timestamp": FieldValue.serverTimestamp(),
+      "source": "app"
+
     });
 
-    isActive = true;
     expiryDate = expiry;
+    isActive = true;
 
     onStateUpdate();
-
-    if (purchase.pendingCompletePurchase) {
-      await _iap.completePurchase(purchase);
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Subscription Activated 🎉")),
-    );
   }
 
+  /// CHECK STATUS
   Future<void> checkPaymentStatus() async {
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
@@ -149,22 +170,40 @@ class SubscriptionController {
         .get();
 
     if (snap.docs.isEmpty) {
+
       isActive = false;
       onStateUpdate();
       return;
+
     }
 
-    final data = snap.docs.first.data();
-
-    final expiry = (data['subscription_expiry'] as Timestamp).toDate();
+    final expiry =
+        (snap.docs.first.data()['subscription_expiry'] as Timestamp).toDate();
 
     expiryDate = expiry;
+
     isActive = expiry.isAfter(DateTime.now());
 
     onStateUpdate();
   }
 
-  void dispose() {
-    _subscription?.cancel();
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+
+    if (state == AppLifecycleState.resumed) {
+
+      checkPaymentStatus();
+
+    }
+
   }
+
+  void dispose() {
+
+    WidgetsBinding.instance.removeObserver(this);
+
+    _subscription?.cancel();
+
+  }
+
 }
