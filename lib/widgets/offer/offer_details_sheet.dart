@@ -20,105 +20,225 @@ class OfferDetailsSheet extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 12),
-          Center(child: Container(width: 45, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)))),
-          const SizedBox(height: 30),
-          if (!isSubscribed) ...[
-            const SizedBox(height: 10),
+      child: SingleChildScrollView( // Added scrollability for smaller screens
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 12),
+            // Minimalist Handle
             Center(
               child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: sectionColor.withOpacity(0.1), shape: BoxShape.circle),
-                child: Icon(Icons.lock_rounded, size: 40, color: sectionColor),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
             const SizedBox(height: 24),
-            const Center(child: Text("Member Exclusive", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5))),
-            const SizedBox(height: 12),
-            const Text(
-              "Detailed pricing, seller contact information, and origin records are only available to subscribed members.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.black54, fontSize: 16, height: 1.4),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 58,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: sectionColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                  elevation: 0,
-                ),
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.of(context).pushNamed('/subscription');
-                },
-                child: const Text("Unlock Now", style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+
+            if (!isSubscribed) ...[
+              _buildLockedState(context),
+            ] else ...[
+              // Header: Badge and Main Title
+              Row(
+                children: [
+                  _buildBadge("CURRENT OFFER"),
+                  const Spacer(),
+                  Icon(Icons.verified_rounded, color: sectionColor, size: 20),
+                  const SizedBox(width: 4),
+                  Text("VERIFIED", style: TextStyle(color: sectionColor, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                ],
               ),
-            ),
-            const SizedBox(height: 40),
-          ] else ...[
-            Text(data['title'] ?? 'Offer Details', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 26, color: Color(0xFF1B3022), letterSpacing: -0.5)),
-            const SizedBox(height: 25),
-            if (data['description'] != null) ...[
-              Text(data['description'], style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.black87)),
-              const SizedBox(height: 25),
-            ],
-            _buildDetailRow(Icons.business_center_rounded, "Company", data['companyName'] ?? 'Not Provided'),
-            _buildDetailRow(Icons.location_on_rounded, "Origin", data['origin'] ?? 'Not Provided'),
-            _buildDetailRow(Icons.account_circle_rounded, "Owner", data['ownerName'] ?? 'Not Provided'),
-            _buildDetailRow(Icons.monetization_on_rounded, "Current Rate", data['rate'] ?? 'Negotiable', isBold: true),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 60,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.phone_enabled_rounded, color: Colors.white),
-                label: const Text("Call Seller", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: sectionColor, 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  elevation: 4,
-                  shadowColor: sectionColor.withOpacity(0.4),
+              const SizedBox(height: 12),
+              Text(
+                data['title'] ?? 'Fruit Offer',
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 28, color: Color(0xFF1A1A1A), letterSpacing: -0.8),
+              ),
+              const SizedBox(height: 20),
+
+              // --- ORIGIN & DESCRIPTION SECTION ---
+              _buildSectionTitle("Description & Origin"),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF9FBF9), // Extremely subtle green tint
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.shade100),
                 ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_rounded, size: 18, color: sectionColor),
+                        const SizedBox(width: 8),
+                        Text(
+                          data['origin'] ?? 'Origin not specified',
+                          style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700, fontSize: 15),
+                        ),
+                      ],
+                    ),
+                    if (data['description'] != null) ...[
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        child: Divider(thickness: 0.5),
+                      ),
+                      Text(
+                        data['description'],
+                        style: TextStyle(fontSize: 15, height: 1.5, color: Colors.grey[700], fontWeight: FontWeight.w400),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // --- BUSINESS DETAILS SECTION ---
+              _buildSectionTitle("Seller Information"),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: [
+                    _buildDetailRow(Icons.storefront_rounded, "Company", data['companyName'] ?? 'Business Hidden'),
+                    _buildDetailRow(Icons.person_pin_rounded, "Proprietor", data['ownerName'] ?? 'Manager'),
+                    _buildDetailRow(Icons.payments_rounded, "Market Rate", data['rate'] ?? 'Ask for Price', isPrice: true),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 32),
+              
+              // Call Action
+              _buildPrimaryButton(
+                label: "Connect with Seller",
+                color: sectionColor,
+                icon: Icons.phone_forwarded_rounded,
                 onPressed: () async {
                   final url = Uri.parse('tel:${data['contact']}');
                   if (await canLaunchUrl(url)) await launchUrl(url);
                 },
               ),
-            ),
-            const SizedBox(height: 40),
+              const SizedBox(height: 40),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value, {bool isBold = false}) {
+  // --- SUB-WIDGETS FOR CLEANER UI ---
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 10),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(color: Colors.grey[500], fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1),
+      ),
+    );
+  }
+
+  Widget _buildBadge(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: sectionColor.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(color: sectionColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+      ),
+    );
+  }
+
+  Widget _buildLockedState(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 20),
+        Container(
+          height: 80, width: 80,
+          decoration: BoxDecoration(color: sectionColor.withOpacity(0.1), shape: BoxShape.circle),
+          child: Icon(Icons.lock_outline_rounded, size: 36, color: sectionColor),
+        ),
+        const SizedBox(height: 24),
+        const Text("Subscribers Only", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+        const SizedBox(height: 12),
+        Text(
+          "Get instant access to wholesale rates, verified supplier contacts, and transportation logs.",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.grey[600], fontSize: 15, height: 1.5),
+        ),
+        const SizedBox(height: 32),
+        _buildPrimaryButton(
+          label: "Unlock Details",
+          color: sectionColor,
+          onPressed: () {
+            Navigator.pop(context);
+            Navigator.of(context).pushNamed('/subscription');
+          },
+        ),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+
+  Widget _buildPrimaryButton({required String label, required Color color, IconData? icon, required VoidCallback onPressed}) {
+    return Container(
+      width: double.infinity,
+      height: 60,
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(color: color.withOpacity(0.25), blurRadius: 20, offset: const Offset(0, 8)),
+        ],
+      ),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          elevation: 0,
+        ),
+        onPressed: onPressed,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+            ],
+            Text(label, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value, {bool isPrice = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: const Color(0xFFF1F4F2), borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, size: 22, color: const Color(0xFF2E7D32)),
-          ),
-          const SizedBox(width: 18),
+          Icon(icon, size: 20, color: Colors.grey[400]),
+          const SizedBox(width: 14),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
-                const SizedBox(height: 2),
-                Text(value, style: TextStyle(fontSize: 17, fontWeight: isBold ? FontWeight.w900 : FontWeight.w600, color: Colors.black87)),
-              ],
+            child: Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14, fontWeight: FontWeight.w500)),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: isPrice ? sectionColor : const Color(0xFF1A1A1A),
             ),
           ),
         ],

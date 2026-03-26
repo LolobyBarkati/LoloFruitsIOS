@@ -57,7 +57,7 @@ class OnboardingScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
-                      'LOGISTICS & MARKETPLACE',
+                      'LOGISTICS CONNECTING PLATFORM',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 10,

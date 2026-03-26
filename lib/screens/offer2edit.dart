@@ -81,7 +81,7 @@ class _Offer2editState extends State<Offer2edit> {
         surfaceTintColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black87, size: 20),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
         ),
         title: const Text(
           'Latest Offers',

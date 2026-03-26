@@ -27,6 +27,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool? isSubscribed;
   late Future<DocumentSnapshot> _productFuture;
   int _currentPage = 0;
+  final Color sectionColor = const Color(0xFF689F38); // Standardizing the green theme
 
   @override
   void initState() {
@@ -94,11 +95,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final imageHeight = 340.0;
-    final overlapHeight = 28.0;
+    const imageHeight = 340.0;
+    const overlapHeight = 32.0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FBF9),
+      backgroundColor: Colors.black, // Dark background for better media contrast
       body: isSubscribed == null
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF689F38)))
           : FutureBuilder<DocumentSnapshot>(
@@ -109,7 +110,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 }
 
                 if (!snapshot.hasData || !snapshot.data!.exists) {
-                  return const Center(child: Text("Product not found."));
+                  return const Center(child: Text("Product not found.", style: TextStyle(color: Colors.white)));
                 }
 
                 final data = snapshot.data!.data() as Map<String, dynamic>;
@@ -143,7 +144,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                 final country = data['country'] ?? 'Unknown';
                 final phone = data['phone'] ?? 'N/A';
-                final String displayRate = data['rate'] != null ? data['rate'].toString() : 'N/A';
+                final String displayRate = data['rate'] != null ? data['rate'].toString() : 'Ask for Price';
                 final String coldStorageName = data['cold_storage_name'] ?? 'N/A';
 
                 return Stack(
@@ -151,9 +152,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     // --- MEDIA CAROUSEL ---
                     if (media.isNotEmpty)
                       Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
+                        top: 0, left: 0, right: 0,
                         child: SizedBox(
                           height: imageHeight,
                           child: Stack(
@@ -183,7 +182,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                               if (media.length > 1)
                                 Padding(
-                                  padding: const EdgeInsets.only(bottom: 45.0),
+                                  padding: const EdgeInsets.only(bottom: 50.0),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: List.generate(
@@ -192,7 +191,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                         duration: const Duration(milliseconds: 150),
                                         margin: const EdgeInsets.symmetric(horizontal: 4.0),
                                         height: 6.0,
-                                        width: _currentPage == index ? 18.0 : 6.0,
+                                        width: _currentPage == index ? 20.0 : 6.0,
                                         decoration: BoxDecoration(
                                           color: _currentPage == index ? Colors.white : Colors.white54,
                                           borderRadius: BorderRadius.circular(3.0),
@@ -206,95 +205,110 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ),
 
-                    // --- CONTENT PANEL ---
+                    // --- CONTENT PANEL (OFFER SHEET UI) ---
                     Positioned(
                       top: imageHeight - overlapHeight,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
+                      left: 0, right: 0, bottom: 0,
                       child: Container(
                         decoration: const BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(32),
-                            topRight: Radius.circular(32),
-                          ),
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
                         ),
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1B3022), letterSpacing: -0.5)),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(Icons.location_on_rounded, color: Color(0xFF8BC34A), size: 18),
-                                  const SizedBox(width: 4),
-                                  Text(country, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
-                                ],
+                              const SizedBox(height: 12),
+                              // Handle
+                              Center(
+                                child: Container(
+                                  width: 36, height: 4,
+                                  decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
+                                ),
                               ),
                               const SizedBox(height: 24),
-                              
-                              if (isSubscribed!) ...[
-                                _buildDetailCard(icon: Icons.ac_unit_rounded, label: "COLD STORAGE", value: coldStorageName, 
-                                  onTap: () async {
-                                    if (coldStorageName != 'N/A' && coldStorageName.isNotEmpty) {
-                                      bool exists = await _doesColdStorageExist(coldStorageName);
-                                      if (exists) {
-                                        Navigator.push(context, MaterialPageRoute(builder: (context) => StorageScreen(initialStorageName: coldStorageName)));
-                                      } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Storage not registered.")));
-                                      }
-                                    }
-                                  },
-                                  trailingIcon: Icons.arrow_forward_ios,
-                                ),
-                                _buildDetailCard(icon: Icons.business_rounded, label: "COMPANY NAME", value: data['company_name'] ?? 'N/A'),
-                                _buildDetailRow(Icons.person_rounded, "OWNER", data['owner_name'] ?? 'N/A'),
-                                _buildDetailRow(Icons.supervisor_account_rounded, "MANAGER", data['manager_name'] ?? 'N/A'),
-                                _buildDetailCard(icon: Icons.price_change_rounded, label: "APPROXIMATE PRICE", value: displayRate, iconColor: Colors.orange.shade700),
-                                _buildDetailCard(icon: Icons.phone_enabled_rounded, label: "CONTACT OWNER", value: phone, onTap: () => _callOwner(phone), trailingIcon: Icons.call, highlight: true),
+
+                              if (!isSubscribed!) ...[
+                                _buildLockedState(context),
                               ] else ...[
-                                // Lock UI
+                                // Header Badge
+                                Row(
+                                  children: [
+                                    _buildBadge("VERIFIED STOCK"),
+                                    const Spacer(),
+                                    Icon(Icons.verified_rounded, color: sectionColor, size: 20),
+                                    const SizedBox(width: 4),
+                                    Text("TOP QUALITY", style: TextStyle(color: sectionColor, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  name,
+                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 28, color: Color(0xFF1A1A1A), letterSpacing: -0.8),
+                                ),
+                                const SizedBox(height: 20),
+
+                                // Location/Origin Section
+                                _buildSectionTitle("Origin & Storage"),
                                 Container(
-                                  padding: const EdgeInsets.all(20),
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(24),
-                                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+                                    color: const Color(0xFFF9FBF9),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: Colors.grey.shade100),
                                   ),
                                   child: Column(
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: const BoxDecoration(color: Color(0xFFF1F8E9), shape: BoxShape.circle),
-                                        child: const Icon(Icons.lock_person_rounded, size: 32, color: Color(0xFF689F38)),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      const Text("Member Exclusive", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-                                      const SizedBox(height: 8),
-                                      const Text("Pricing, storage details, and direct contact numbers are only available to subscribed members.",
-                                        textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, height: 1.4)),
-                                      const SizedBox(height: 24),
-                                      SizedBox(
-                                        width: double.infinity,
-                                        height: 54,
-                                        child: ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF689F38),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                            elevation: 0,
-                                          ),
-                                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionScreen())),
-                                          child: const Text("Unlock Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                                        ),
+                                      _buildSimpleInfoRow(Icons.location_on_rounded, "Country of Origin", country),
+                                      const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(thickness: 0.5)),
+                                      InkWell(
+                                        onTap: () async {
+                                          if (coldStorageName != 'N/A') {
+                                            bool exists = await _doesColdStorageExist(coldStorageName);
+                                            if (exists) {
+                                              Navigator.push(context, MaterialPageRoute(builder: (context) => StorageScreen(initialStorageName: coldStorageName)));
+                                            }
+                                          }
+                                        },
+                                        child: _buildSimpleInfoRow(Icons.ac_unit_rounded, "Cold Storage", coldStorageName, hasArrow: coldStorageName != 'N/A'),
                                       ),
                                     ],
                                   ),
                                 ),
+                                const SizedBox(height: 24),
+
+                                // Seller Details
+                                _buildSectionTitle("Seller Information"),
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: Colors.grey.shade200),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      _buildDetailRow(Icons.storefront_rounded, "Company", data['company_name'] ?? 'N/A'),
+                                      _buildDetailRow(Icons.person_pin_rounded, "Proprietor", data['owner_name'] ?? 'N/A'),
+                                      _buildDetailRow(Icons.supervisor_account_rounded, "Manager", data['manager_name'] ?? 'N/A'),
+                                      _buildDetailRow(Icons.payments_rounded, "Market Rate", displayRate, isPrice: true),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 32),
+                                
+                                // Call Action Button
+                                _buildPrimaryButton(
+                                  label: "Connect with Seller",
+                                  color: sectionColor,
+                                  icon: Icons.phone_forwarded_rounded,
+                                  onPressed: () => _callOwner(phone),
+                                ),
+                                const SizedBox(height: 40),
                               ],
-                              const SizedBox(height: 30),
                             ],
                           ),
                         ),
@@ -303,8 +317,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                     // Back Button
                     Positioned(
-                      top: 45,
-                      left: 16,
+                      top: 45, left: 16,
                       child: CircleAvatar(
                         backgroundColor: Colors.black.withOpacity(0.4),
                         child: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18), onPressed: () => Navigator.pop(context)),
@@ -317,58 +330,117 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
+  // --- REUSABLE UI COMPONENTS (MATCHING THE SHEET UI) ---
+
+  Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      padding: const EdgeInsets.only(left: 4, bottom: 10),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(color: Colors.grey[500], fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1),
+      ),
+    );
+  }
+
+  Widget _buildBadge(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: sectionColor.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(color: sectionColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+      ),
+    );
+  }
+
+  Widget _buildSimpleInfoRow(IconData icon, String label, String value, {bool hasArrow = false}) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: sectionColor),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.bold)),
+            Text(value, style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700, fontSize: 15)),
+          ],
+        ),
+        if (hasArrow) ...[const Spacer(), Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey[400])]
+      ],
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value, {bool isPrice = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.grey),
-          const SizedBox(width: 12),
-          Text("$label: ", style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          Icon(icon, size: 20, color: Colors.grey[400]),
+          const SizedBox(width: 14),
+          Expanded(child: Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14, fontWeight: FontWeight.w500))),
+          Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: isPrice ? sectionColor : const Color(0xFF1A1A1A))),
         ],
       ),
     );
   }
 
-  Widget _buildDetailCard({required IconData icon, required String label, required String value, VoidCallback? onTap, IconData? trailingIcon, Color? iconColor, bool highlight = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: highlight ? const Color(0xFFF1F8E9) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: highlight ? const Color(0xFF8BC34A).withOpacity(0.3) : Colors.grey.shade100),
-            boxShadow: [if(!highlight) BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))],
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: iconColor ?? const Color(0xFF689F38), size: 24),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, fontSize: 10, letterSpacing: 0.5)),
-                    const SizedBox(height: 2),
-                    Text(value, style: TextStyle(fontSize: 16, fontWeight: highlight ? FontWeight.w900 : FontWeight.w700, color: const Color(0xFF1B3022))),
-                  ],
-                ),
-              ),
-              if (trailingIcon != null) Icon(trailingIcon, size: 16, color: highlight ? const Color(0xFF689F38) : Colors.grey),
-            ],
-          ),
+  Widget _buildPrimaryButton({required String label, required Color color, IconData? icon, required VoidCallback onPressed}) {
+    return Container(
+      width: double.infinity, height: 60,
+      decoration: BoxDecoration(
+        boxShadow: [BoxShadow(color: color.withOpacity(0.25), blurRadius: 20, offset: const Offset(0, 8))],
+      ),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          elevation: 0,
+        ),
+        onPressed: onPressed,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[Icon(icon, color: Colors.white, size: 20), const SizedBox(width: 10)],
+            Text(label, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+          ],
         ),
       ),
     );
   }
+
+  Widget _buildLockedState(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 20),
+        Container(
+          height: 80, width: 80,
+          decoration: BoxDecoration(color: sectionColor.withOpacity(0.1), shape: BoxShape.circle),
+          child: Icon(Icons.lock_outline_rounded, size: 36, color: sectionColor),
+        ),
+        const SizedBox(height: 24),
+        const Text("Subscribers Only", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+        const SizedBox(height: 12),
+        Text(
+          "Get instant access to wholesale rates, verified supplier contacts, and cold storage details.",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.grey[600], fontSize: 15, height: 1.5),
+        ),
+        const SizedBox(height: 32),
+        _buildPrimaryButton(
+          label: "Unlock Details",
+          color: sectionColor,
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionScreen())),
+        ),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
 }
 
-// --- HELPER CLASSES & FUNCTIONS ---
+// --- HELPER CLASSES (REMAINING UNCHANGED) ---
 
 void showGalleryViewer(BuildContext context, List<String> imageUrls, int initialIndex) {
   showDialog(context: context, builder: (_) => Dialog(backgroundColor: Colors.black, insetPadding: EdgeInsets.zero, child: GalleryPhotoViewWrapper(galleryItems: imageUrls, initialIndex: initialIndex)));

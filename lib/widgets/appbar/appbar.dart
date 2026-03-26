@@ -4,13 +4,13 @@ import 'package:barkati_frits/screens/profile.dart';
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onNotificationTap;
   final VoidCallback? onPremiumTap;
-  final bool isSubscribed; // This controls the text
+  final bool isSubscribed;
 
   const HomeAppBar({
     super.key,
     this.onNotificationTap,
     this.onPremiumTap,
-    this.isSubscribed = false, // Default is false
+    this.isSubscribed = false,
   });
 
   @override
@@ -19,16 +19,22 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.lightGreen,
-        // color: Color(0xFF0F172A),
+        // Subtle bottom shadow to separate AppBar from body
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       padding: const EdgeInsets.all(16),
       child: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            // Top Row
             Row(
               children: [
                 GestureDetector(
@@ -38,24 +44,32 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white10, width: 1),
+                        // Improved border clarity
+                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                          )
+                        ],
                       ),
-                      child: const CircleAvatar(
+                      child: CircleAvatar(
                         radius: 18,
-                        backgroundColor: Colors.white10,
-                        child: Icon(Icons.person_outline, color: Colors.white70),
+                        backgroundColor: Colors.white.withOpacity(0.2), // Frosted glass effect
+                        child: const Icon(Icons.person_rounded, color: Colors.white, size: 20),
                       ),
                     ),
                   ),
                 ),
                 Expanded(
                   child: Center(
-                    child: const Text(
+                    child: Text(
                       'Lolo Fruits',
                       style: TextStyle(
                           color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold),
+                          fontSize: 20, // Slightly more legible
+                          letterSpacing: -0.5, // Modern tighter kerning
+                          fontWeight: FontWeight.w900), // Bolder for brand presence
                     ),
                   ),
                 ),
@@ -63,8 +77,6 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
               ],
             ),
             const SizedBox(height: 12),
-
-            // 🔥 Shining Button - text changes based on isSubscribed
             _ShiningButton(onTap: onPremiumTap, isSubscribed: isSubscribed),
           ],
         ),
@@ -91,7 +103,7 @@ class _ShiningButtonState extends State<_ShiningButton>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 2500), // Slightly slower for elegance
     )..repeat();
   }
 
@@ -104,7 +116,6 @@ class _ShiningButtonState extends State<_ShiningButton>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      // Only allow tap if NOT subscribed, or keep tap for 'Manage Subscription'
       onTap: () {
         if (widget.onTap != null) {
           widget.onTap!();
@@ -122,13 +133,13 @@ class _ShiningButtonState extends State<_ShiningButton>
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 stops: [
-                  _controller.value - 0.2,
+                  _controller.value - 0.25, // Adjusted stops for smoother gradient
                   _controller.value,
-                  _controller.value + 0.2,
+                  _controller.value + 0.25,
                 ],
                 colors: [
                   Colors.white.withOpacity(0),
-                  Colors.white.withOpacity(0.4),
+                  Colors.white.withOpacity(0.5), // Brighter shine center
                   Colors.white.withOpacity(0),
                 ],
               ).createShader(rect);
@@ -139,17 +150,19 @@ class _ShiningButtonState extends State<_ShiningButton>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
           decoration: BoxDecoration(
-            // Change color to Greenish-Gold if subscribed for a "Verified" feel
             gradient: LinearGradient(
+              begin: Alignment.topCenter, // Added verticality for depth
+              end: Alignment.bottomCenter,
               colors: widget.isSubscribed 
-                ? [Colors.green.shade700, Colors.green.shade400] 
-                : [Colors.amber.shade700, Colors.amber.shade400],
+                ? [Colors.green.shade600, Colors.green.shade800] 
+                : [Colors.amber.shade400, Colors.amber.shade700],
             ),
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: (widget.isSubscribed ? Colors.green : Colors.amber).withOpacity(0.3),
-                blurRadius: 10,
+                color: (widget.isSubscribed ? Colors.green : Colors.amber).withOpacity(0.4),
+                blurRadius: 12,
+                spreadRadius: -2, // Professional tight shadow
                 offset: const Offset(0, 4),
               )
             ],
@@ -158,18 +171,18 @@ class _ShiningButtonState extends State<_ShiningButton>
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                widget.isSubscribed ? Icons.verified_user : Icons.stars_rounded, 
+                widget.isSubscribed ? Icons.verified_rounded : Icons.stars_rounded, 
                 size: 18, 
-                color: Colors.black, // Changed to white for better contrast
+                color: Colors.black.withOpacity(0.85), // Slightly softened black
               ),
               const SizedBox(width: 8),
               Text(
                 widget.isSubscribed ? 'PREMIUM USER' : 'UPGRADE TO PREMIUM',
-                style: const TextStyle(
-                    color: Colors.black, // Changed to white for better contrast
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
-                    fontSize: 13),
+                style: TextStyle(
+                    color: Colors.black.withOpacity(0.85),
+                    fontWeight: FontWeight.w900, // Thicker weight for a "solid" look
+                    letterSpacing: 1.1, // Improved uppercase legibility
+                    fontSize: 12.5),
               ),
             ],
           ),

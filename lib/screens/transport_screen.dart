@@ -16,6 +16,11 @@ class _TransportScreenState extends State<TransportScreen> {
   final TextEditingController _fromController = TextEditingController();
   final TextEditingController _toController = TextEditingController();
 
+  // Brand Colors
+  final Color primaryGreen = const Color(0xFF80C031);
+  final Color accentOrange = const Color(0xFFFFA000);
+  final Color scaffoldBg = const Color(0xFFF4F7F5); // Very light grey-green tint
+
   @override
   void dispose() {
     _fromController.dispose();
@@ -26,25 +31,22 @@ class _TransportScreenState extends State<TransportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text('Transport',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.lightGreen,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Transport Routes',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        backgroundColor: primaryGreen,
         elevation: 0,
         centerTitle: true,
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFF7F8FA), Color(0xFFE3F0FF)],
-            begin: Alignment.bottomLeft,
-            end: Alignment.topRight,
-          ),
-        ),
-        child: SubscriptionWrapper(
-          child: _buildSubscribedView(context),
-        ),
+      body: SubscriptionWrapper(
+        child: _buildSubscribedView(context),
       ),
     );
   }
@@ -52,45 +54,54 @@ class _TransportScreenState extends State<TransportScreen> {
   Widget _buildSubscribedView(BuildContext context) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.black.withOpacity(0.3)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Search Routes',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildSearchField(_fromController, 'From'),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildSearchField(_toController, 'To'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+        // --- CLEAN SEARCH SECTION ---
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: primaryGreen,
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
             ),
           ),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 25),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Where are you shipping?",
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              const SizedBox(height: 15),
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    )
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(child: _buildSearchField(_fromController, 'From', Icons.location_on_rounded)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Icon(Icons.swap_horiz_rounded, color: primaryGreen.withOpacity(0.5)),
+                    ),
+                    Expanded(child: _buildSearchField(_toController, 'To', Icons.flag_rounded)),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
+
+        // --- LIST VIEW ---
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
@@ -99,14 +110,11 @@ class _TransportScreenState extends State<TransportScreen> {
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                    child: CircularProgressIndicator(color: Colors.blue));
+                return Center(child: CircularProgressIndicator(color: primaryGreen));
               }
 
               if (snapshot.hasError) {
-                return Center(
-                    child: Text('Error: ${snapshot.error}',
-                        style: const TextStyle(color: Colors.red)));
+                return const Center(child: Text('Something went wrong.'));
               }
 
               final docs = snapshot.data?.docs ?? [];
@@ -121,21 +129,25 @@ class _TransportScreenState extends State<TransportScreen> {
               }).toList();
 
               if (filteredEntries.isEmpty) {
-                return const Center(
-                    child: Text('No matching transport found.',
-                        style: TextStyle(color: Colors.black54)));
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.local_shipping_outlined, size: 50, color: Colors.grey[300]),
+                      const SizedBox(height: 10),
+                      Text('No routes found', style: TextStyle(color: Colors.grey[400])),
+                    ],
+                  ),
+                );
               }
 
               return ListView.builder(
                 itemCount: filteredEntries.length,
-                padding: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.only(top: 15, bottom: 20),
+                physics: const BouncingScrollPhysics(),
                 itemBuilder: (context, index) {
-                  final data =
-                      filteredEntries[index].data() as Map<String, dynamic>;
-                  final timestamp = data['timestamp'] as Timestamp?;
-
-                  return _buildTransportCard(
-                      context, data, filteredEntries[index].id);
+                  final data = filteredEntries[index].data() as Map<String, dynamic>;
+                  return _buildTransportCard(context, data, filteredEntries[index].id);
                 },
               );
             },
@@ -145,140 +157,125 @@ class _TransportScreenState extends State<TransportScreen> {
     );
   }
 
-  Widget _buildSearchField(TextEditingController controller, String label) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.8),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
-          ),
-          child: TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              labelText: label,
-              border: InputBorder.none,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              filled: true,
-              fillColor: Colors.white.withOpacity(0.5),
-            ),
-            onChanged: (_) => setState(() {}),
-            style: const TextStyle(color: Colors.black87),
-          ),
-        ),
+  Widget _buildSearchField(TextEditingController controller, String label, IconData icon) {
+    return TextField(
+      controller: controller,
+      onChanged: (_) => setState(() {}),
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: primaryGreen, size: 18),
+        hintText: label,
+        hintStyle: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.normal),
+        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+        border: InputBorder.none,
       ),
     );
   }
 
-  Widget _buildTransportCard(
-      BuildContext context, Map<String, dynamic> data, String docId) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+  Widget _buildTransportCard(BuildContext context, Map<String, dynamic> data, String docId) {
+    final double progress = ((data['progress'] ?? 50) / 100).toDouble().clamp(0.0, 1.0);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
         color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.directions_bus,
-                      color: Colors.blue, size: 40),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          data['company'] ?? 'Unknown Company',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 22,
-                              color: Colors.blueGrey),
-                        ),
-                        const SizedBox(height: 8),
-                        Text('From: ${data['from'] ?? 'N/A'}',
-                            style: const TextStyle(
-                                fontSize: 14, color: Colors.black87)),
-                        const SizedBox(height: 4),
-                        Text('To: ${data['to'] ?? 'N/A'}',
-                            style: const TextStyle(
-                                fontSize: 14, color: Colors.black87)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white), // Subtle touch
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Visual Indicator for Route
+                Column(
+                  children: [
+                    Icon(Icons.radio_button_checked, size: 16, color: primaryGreen),
+                    Container(width: 2, height: 30, color: Colors.grey[200]),
+                    Icon(Icons.location_on, size: 16, color: accentOrange),
+                  ],
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        data['status'] ?? 'Active',
-                        style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.green,
-                            fontWeight: FontWeight.w600),
+                        data['company'] ?? 'Lolo Transport',
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
                       ),
-                      const SizedBox(height: 4),
-                      Container(
-                        width: 100,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(3),
-                          color: Colors.grey[300],
-                        ),
-                        child: FractionallySizedBox(
-                          widthFactor:
-                              ((data['progress'] ?? 50) / 100).clamp(0.0, 1.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(3),
-                              color: Colors.green,
-                            ),
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 8),
+                      Text("From: ${data['from'] ?? 'N/A'}", style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                      Text("To: ${data['to'] ?? 'N/A'}", style: const TextStyle(fontSize: 13, color: Colors.black54)),
                     ],
                   ),
-                  ElevatedButton(
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(25)),
-                        ),
-                        backgroundColor: Colors.white,
-                        isScrollControlled: true,
-                        builder: (_) => TransportBottomSheet(documentId: docId),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                    child: const Text('View Details',
-                        style: TextStyle(fontSize: 14)),
+                ),
+                // Status Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: primaryGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                ],
-              ),
-            ],
+                  child: Text(
+                    data['status'] ?? 'Active',
+                    style: TextStyle(color: primaryGreen, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                )
+              ],
+            ),
           ),
-        ),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      backgroundColor: Colors.grey[100],
+                      color: primaryGreen,
+                      minHeight: 6,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 15),
+                TextButton(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+                      ),
+                      backgroundColor: Colors.white,
+                      isScrollControlled: true,
+                      builder: (_) => TransportBottomSheet(documentId: docId),
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: accentOrange,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text(
+                    'Details',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          )
+        ],
       ),
     );
   }

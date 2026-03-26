@@ -14,6 +14,10 @@ class StorageScreen extends StatefulWidget {
 }
 
 class _StorageScreenState extends State<StorageScreen> {
+  // Brand Colors
+  final Color primaryGreen = const Color(0xFF80C031);
+  final Color accentOrange = const Color(0xFFFFA000);
+
   // Pagination
   static const int _pageSize = 10;
   final List<QueryDocumentSnapshot> _storages = [];
@@ -94,7 +98,7 @@ class _StorageScreenState extends State<StorageScreen> {
     if (index != -1 && _scrollController.hasClients) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollController.animateTo(
-          index * 140.0,
+          index * 160.0, // Adjusted for slightly taller modern cards
           duration: const Duration(milliseconds: 600),
           curve: Curves.easeInOut,
         );
@@ -131,29 +135,33 @@ class _StorageScreenState extends State<StorageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAF9), // Soft fresh background
       appBar: AppBar(
-        title: const Text('Cold Storage'),
+        title: const Text('Cold Storage', 
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         centerTitle: true,
+        backgroundColor: primaryGreen,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      backgroundColor: Colors.blueGrey[50],
       body: _storages.isEmpty && _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: primaryGreen))
           : _storages.isEmpty
-              ? const Center(child: Text('No storage entries found.'))
+              ? Center(child: Text('No storage entries found.', 
+                  style: TextStyle(color: Colors.grey[600], fontSize: 16)))
               : ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   itemCount: _storages.length + (_hasMore ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index == _storages.length) {
-                      return const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Center(child: CircularProgressIndicator()),
+                      return Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Center(child: CircularProgressIndicator(color: primaryGreen)),
                       );
                     }
 
-                    final data =
-                        _storages[index].data() as Map<String, dynamic>;
+                    final data = _storages[index].data() as Map<String, dynamic>;
 
                     final name = data['name'] ?? 'N/A';
                     final phone = data['director_number'] ?? '';
@@ -166,69 +174,101 @@ class _StorageScreenState extends State<StorageScreen> {
                         ? timeago.format(ts.toDate())
                         : 'Recently updated';
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 10),
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Column(
                           children: [
-                            Container(
-                              width: 56,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                color: Colors.green[50],
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(Icons.insert_drive_file_rounded,
-                                  size: 40, color: Colors.green[700]),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(name,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16)),
-                                  const SizedBox(height: 6),
-                                  if (fileSize.isNotEmpty)
-                                    Text(fileSize,
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[700])),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      _actionBtn(
-                                          'Call',
-                                          Icons.call,
-                                          Colors.green,
-                                          () => _callOwner(phone)),
-                                      const SizedBox(width: 8),
-                                      _actionBtn('Map', Icons.map, Colors.blue,
-                                          () => _openMap(mapUrl)),
-                                      const SizedBox(width: 8),
-                                      _actionBtn(
-                                          'Rate',
-                                          Icons.download,
-                                          Colors.green[700]!,
-                                          () => _openPdf(fileUrl)),
-                                    ],
+                                  // Icon Container
+                                  Container(
+                                    width: 52,
+                                    height: 52,
+                                    decoration: BoxDecoration(
+                                      color: primaryGreen.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(Icons.ac_unit_rounded,
+                                        size: 30, color: primaryGreen),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text('Updated $updatedText',
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600])),
+                                  const SizedBox(width: 14),
+                                  // Content
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(name,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 17,
+                                                color: Color(0xFF2D312E))),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Icon(Icons.history, size: 14, color: Colors.grey[400]),
+                                            const SizedBox(width: 4),
+                                            Text('Updated $updatedText',
+                                                style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey[500])),
+                                          ],
+                                        ),
+                                        if (fileSize.isNotEmpty)
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 4),
+                                            child: Text('Rate File: $fileSize',
+                                                style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: accentOrange)),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
-                            )
+                            ),
+                            // Action Buttons Footer
+                            Container(
+                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                              child: Row(
+                                children: [
+                                  _actionBtn(
+                                      'Call',
+                                      Icons.call_rounded,
+                                      primaryGreen,
+                                      () => _callOwner(phone)),
+                                  const SizedBox(width: 8),
+                                  _actionBtn(
+                                      'Map', 
+                                      Icons.location_on_rounded, 
+                                      const Color(0xFF4A90E2),
+                                      () => _openMap(mapUrl)),
+                                  const SizedBox(width: 8),
+                                  _actionBtn(
+                                      'Rate',
+                                      Icons.file_download_outlined,
+                                      accentOrange,
+                                      () => _openPdf(fileUrl)),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -241,16 +281,30 @@ class _StorageScreenState extends State<StorageScreen> {
   Widget _actionBtn(
       String label, IconData icon, Color color, VoidCallback onTap) {
     return Expanded(
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 16),
-        label: Text(label, style: const TextStyle(fontSize: 12)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Material(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
