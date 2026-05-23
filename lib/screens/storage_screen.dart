@@ -256,16 +256,18 @@ class _StorageScreenState extends State<StorageScreen> {
                                       () => _callOwner(phone)),
                                   const SizedBox(width: 8),
                                   _actionBtn(
-                                      'Map', 
-                                      Icons.location_on_rounded, 
+                                      'Map',
+                                      Icons.location_on_rounded,
                                       const Color(0xFF4A90E2),
                                       () => _openMap(mapUrl)),
-                                  const SizedBox(width: 8),
-                                  _actionBtn(
-                                      'Rate',
-                                      Icons.file_download_outlined,
-                                      accentOrange,
-                                      () => _openPdf(fileUrl)),
+                                  if (fileUrl.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    _actionBtn(
+                                        'Rate',
+                                        Icons.file_download_outlined,
+                                        accentOrange,
+                                        () => _openPdf(fileUrl)),
+                                  ],
                                 ],
                               ),
                             ),

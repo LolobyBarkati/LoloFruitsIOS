@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:barkati_frits/screens/subscription_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -138,7 +139,9 @@ class SubscriptionWrapper extends StatelessWidget {
               
               // Secondary Hint
               Text(
-                "Safe & Secure Payments via Google Play",
+                Platform.isIOS
+                    ? "Safe & Secure Payments via App Store"
+                    : "Safe & Secure Payments via Google Play",
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey.shade400,

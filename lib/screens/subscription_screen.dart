@@ -171,6 +171,16 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
               _buildPlanCard(controller.yearlyProduct!, true),
             if (controller.monthlyProduct == null && controller.yearlyProduct == null)
               _buildErrorPlan(),
+            const SizedBox(height: 16),
+            Center(
+              child: TextButton(
+                onPressed: () => _controller?.restorePurchases(),
+                child: const Text(
+                  "Restore Purchases",
+                  style: TextStyle(color: Colors.white54, fontSize: 13),
+                ),
+              ),
+            ),
           ],
         ],
       ),

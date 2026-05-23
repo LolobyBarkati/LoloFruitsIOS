@@ -29,6 +29,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int _currentPage = 0;
   final Color sectionColor = const Color(0xFF689F38); // Standardizing the green theme
 
+  String _capitalizeFirstLetter(String input) {
+    if (input.isEmpty) return input;
+    return input[0].toUpperCase() + input.substring(1).toLowerCase();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -114,7 +119,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 }
 
                 final data = snapshot.data!.data() as Map<String, dynamic>;
-                final name = (data['fruit_name'] ?? 'Unknown').toString().toUpperCase();
+                final name = _capitalizeFirstLetter((data['fruit_name'] ?? 'Unknown').toString());
 
                 // Media Logic
                 final List imageUrls = (() {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:barkati_frits/screens/login_screen.dart';
 import 'package:barkati_frits/screens/signup_screen.dart';
 import 'package:barkati_frits/widgets/custom_button.dart';
@@ -120,6 +121,37 @@ class OnboardingScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      GestureDetector(
+                        onTap: () => launchUrl(Uri.parse('https://www.lolofruits.com/privacy-policy')),
+                        child: const Text(
+                          'Privacy Policy',
+                          style: TextStyle(
+                            color: Colors.white60,
+                            fontSize: 12,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Colors.white60,
+                          ),
+                        ),
+                      ),
+                      const Text('  ·  ', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                      GestureDetector(
+                        onTap: () => launchUrl(Uri.parse('https://www.lolofruits.com/terms')),
+                        child: const Text(
+                          'Terms of Use',
+                          style: TextStyle(
+                            color: Colors.white60,
+                            fontSize: 12,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Colors.white60,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),

@@ -60,6 +60,12 @@ String fruitAssetPath(String fruitName) {
   return 'assets/icons/fruits/$mapped.png';
 }
 
+// Per-fruit scale overrides for assets that have extra whitespace.
+const _fruitScales = {
+  'dragonfruit': 1.55,
+  'plum': 1.55,
+};
+
 /// A widget that shows a fruit icon with priority:
 /// 1. [bannerUrl] from Firestore (if provided and non-empty)
 /// 2. Local 3D asset from assets/icons/fruits/
@@ -86,7 +92,9 @@ class FruitIcon extends StatelessWidget {
   }
 
   Widget _localAsset() {
-    return Image.asset(
+    final key = fruitName.toLowerCase().trim().replaceAll(' ', '');
+    final scale = _fruitScales[key] ?? 1.0;
+    final img = Image.asset(
       fruitAssetPath(fruitName),
       width: size,
       height: size,
@@ -96,5 +104,7 @@ class FruitIcon extends StatelessWidget {
         style: TextStyle(fontSize: size * 0.75),
       ),
     );
+    if (scale == 1.0) return img;
+    return Transform.scale(scale: scale, child: img);
   }
 }

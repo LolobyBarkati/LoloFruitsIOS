@@ -14,70 +14,61 @@ class FruitsScreen extends StatefulWidget {
 class _FruitsScreenState extends State<FruitsScreen> {
   String _searchQuery = '';
 
-  static const int _pageSize = 8;
-  final List<QueryDocumentSnapshot> _fruits = [];
-  QueryDocumentSnapshot? _lastFruitDoc;
-  bool _isLoading = false;
-  bool _hasMoreFruits = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadInitialFruits();
+  String _cap(String input) {
+    if (input.isEmpty) return input;
+    return input[0].toUpperCase() + input.substring(1).toLowerCase();
   }
 
-  Future<void> _loadInitialFruits() async {
-    if (_isLoading) return;
-    setState(() => _isLoading = true);
-
-    final snapshot = await FirebaseFirestore.instance
+  // Returns only fruits that have at least one post in their subcollection.
+  Stream<List<QueryDocumentSnapshot>> get _fruitsStream {
+    return FirebaseFirestore.instance
         .collection('fruits')
         .orderBy(FieldPath.documentId)
-        .limit(_pageSize)
-        .get();
-
-    setState(() {
-      _fruits.clear();
-      _fruits.addAll(snapshot.docs);
-      _lastFruitDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
-      _hasMoreFruits = snapshot.docs.length == _pageSize;
-      _isLoading = false;
+        .snapshots()
+        .asyncMap((snapshot) async {
+      if (snapshot.docs.isEmpty) return [];
+      final checks = await Future.wait(
+        snapshot.docs.map((doc) => FirebaseFirestore.instance
+            .collection('fruits')
+            .doc(doc.id)
+            .collection(doc.id)
+            .limit(1)
+            .get()),
+      );
+      return [
+        for (int i = 0; i < snapshot.docs.length; i++)
+          if (checks[i].docs.isNotEmpty) snapshot.docs[i],
+      ];
     });
   }
 
-  Future<void> _loadMoreFruits() async {
-    if (_isLoading || !_hasMoreFruits || _lastFruitDoc == null) return;
-    setState(() => _isLoading = true);
-
-    final snapshot = await FirebaseFirestore.instance
-        .collection('fruits')
-        .orderBy(FieldPath.documentId)
-        .startAfterDocument(_lastFruitDoc!)
-        .limit(_pageSize)
-        .get();
-
-    setState(() {
-      _fruits.addAll(snapshot.docs);
-      _lastFruitDoc =
-          snapshot.docs.isNotEmpty ? snapshot.docs.last : _lastFruitDoc;
-      _hasMoreFruits = snapshot.docs.length == _pageSize;
-      _isLoading = false;
-    });
-  }
-
-  void _onSearchChanged(String value) {
-    setState(() {
-      _searchQuery = value.trim().toLowerCase();
+  // Returns only exotic fruits that have at least one post.
+  Stream<List<QueryDocumentSnapshot>> get _exoticFruitsStream {
+    return FirebaseFirestore.instance
+        .collection('exotic_fruits')
+        .snapshots()
+        .asyncMap((snapshot) async {
+      if (snapshot.docs.isEmpty) return [];
+      final names = snapshot.docs.map((doc) {
+        return ((doc.data() as Map)['name'] as String?) ?? doc.id;
+      }).toList();
+      final checks = await Future.wait(
+        names.map((name) => FirebaseFirestore.instance
+            .collection('fruits')
+            .doc(name)
+            .collection(name)
+            .limit(1)
+            .get()),
+      );
+      return [
+        for (int i = 0; i < snapshot.docs.length; i++)
+          if (checks[i].docs.isNotEmpty) snapshot.docs[i],
+      ];
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredFruits = _fruits.where((fruit) {
-      final name = fruit.id.toLowerCase();
-      return _searchQuery.isEmpty || name.contains(_searchQuery);
-    }).toList();
-
     return Scaffold(
       backgroundColor: const Color(0xFFF9FBF9),
       appBar: AppBar(
@@ -105,7 +96,7 @@ class _FruitsScreenState extends State<FruitsScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔍 Enhanced Search Bar
+          // Search bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Container(
@@ -121,7 +112,7 @@ class _FruitsScreenState extends State<FruitsScreen> {
                 ],
               ),
               child: TextField(
-                onChanged: _onSearchChanged,
+                onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
                 decoration: InputDecoration(
                   hintText: 'Search fresh fruits...',
                   hintStyle: TextStyle(color: Colors.grey.shade400),
@@ -133,15 +124,12 @@ class _FruitsScreenState extends State<FruitsScreen> {
             ),
           ),
 
-          // 🍍 Exotic Fruits Section
-          FutureBuilder<QuerySnapshot>(
-            future: FirebaseFirestore.instance.collection('exotic_fruits').get(),
+          // Other Fruits — hidden when all are empty
+          StreamBuilder<List<QueryDocumentSnapshot>>(
+            stream: _exoticFruitsStream,
             builder: (context, snapshot) {
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const SizedBox();
-              }
-
-              final exotics = snapshot.data!.docs;
+              final exotics = snapshot.data ?? [];
+              if (exotics.isEmpty) return const SizedBox();
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,7 +139,7 @@ class _FruitsScreenState extends State<FruitsScreen> {
                     child: Row(
                       children: [
                         const Text(
-                          'EXOTIC SELECTION',
+                          'Other Fruits',
                           style: TextStyle(
                             fontSize: 14,
                             letterSpacing: 1.2,
@@ -171,16 +159,15 @@ class _FruitsScreenState extends State<FruitsScreen> {
                       scrollDirection: Axis.horizontal,
                       itemCount: exotics.length,
                       itemBuilder: (context, index) {
-                        final name = exotics[index]['name'] ?? exotics[index].id;
+                        final d = exotics[index].data() as Map<String, dynamic>;
+                        final name = d['name'] as String? ?? exotics[index].id;
                         return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => FruitPostsScreen(fruitName: name),
-                              ),
-                            );
-                          },
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FruitPostsScreen(fruitName: name),
+                            ),
+                          ),
                           child: Container(
                             width: 140,
                             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -213,7 +200,7 @@ class _FruitsScreenState extends State<FruitsScreen> {
                                   child: Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: Text(
-                                      name.toUpperCase(),
+                                      _cap(name),
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(
                                         color: Color(0xFF5D4037),
@@ -235,81 +222,84 @@ class _FruitsScreenState extends State<FruitsScreen> {
             },
           ),
 
-          const Padding(
-            padding: EdgeInsets.fromLTRB(18, 24, 16, 8),
-            child: Text(
-              'REGULAR FRUITS',
-              style: TextStyle(
-                fontSize: 14,
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF424242),
-              ),
-            ),
-          ),
-
-          // 🍎 Normal Fruits Grid
+          // Fruits grid — header and grid together so header hides with it
           Expanded(
-            child: filteredFruits.isEmpty && _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF689F38)))
-                : filteredFruits.isEmpty
-                    ? const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.search_off, size: 64, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text('No fruits found.', style: TextStyle(color: Colors.grey)),
-                          ],
-                        ),
-                      )
-                    : NotificationListener<ScrollNotification>(
-                        onNotification: (scrollInfo) {
-                          if (scrollInfo.metrics.pixels >=
-                                  scrollInfo.metrics.maxScrollExtent - 200 &&
-                              !_isLoading &&
-                              _hasMoreFruits) {
-                            _loadMoreFruits();
-                          }
-                          return false;
-                        },
-                        child: GridView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: filteredFruits.length + (_hasMoreFruits ? 1 : 0),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 1.1,
-                          ),
-                          itemBuilder: (context, index) {
-                            if (index == filteredFruits.length) {
-                              return const Center(child: CircularProgressIndicator(color: Color(0xFF689F38)));
-                            }
+            child: StreamBuilder<List<QueryDocumentSnapshot>>(
+              stream: _fruitsStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF689F38)),
+                  );
+                }
 
-                            final fruit = filteredFruits[index];
+                final allFruits = snapshot.data ?? [];
+                final filtered = allFruits.where((f) {
+                  return _searchQuery.isEmpty ||
+                      f.id.toLowerCase().contains(_searchQuery);
+                }).toList();
+
+                if (filtered.isEmpty) {
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.search_off, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text('No fruits found.',
+                            style: TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  );
+                }
+
+                return CustomScrollView(
+                  slivers: [
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(18, 24, 16, 8),
+                        child: Text(
+                          'Fruits',
+                          style: TextStyle(
+                            fontSize: 14,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF424242),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      sliver: SliverGrid(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final fruit = filtered[index];
                             final fruitName = fruit.id;
-                            final fruitData = fruit.data() as Map<String, dynamic>;
-                            final bannerUrl = fruitData['banner_url'] as String? ?? '';
+                            final fruitData =
+                                fruit.data() as Map<String, dynamic>;
+                            final bannerUrl =
+                                fruitData['banner_url'] as String? ?? '';
 
                             return GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => FruitPostsScreen(fruitName: fruitName),
-                                  ),
-                                );
-                              },
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      FruitPostsScreen(fruitName: fruitName),
+                                ),
+                              ),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(24),
-                                  border: Border.all(color: Colors.green.shade50, width: 2),
+                                  border: Border.all(
+                                      color: Colors.green.shade50, width: 2),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.green.shade900.withOpacity(0.04),
+                                      color: Colors.green.shade900
+                                          .withOpacity(0.04),
                                       blurRadius: 12,
                                       offset: const Offset(0, 6),
                                     ),
@@ -317,15 +307,27 @@ class _FruitsScreenState extends State<FruitsScreen> {
                                 ),
                                 child: Stack(
                                   children: [
-                                    Position_BgIcon(Colors.green.shade50),
+                                    Positioned(
+                                      top: -15,
+                                      left: -15,
+                                      child: CircleAvatar(
+                                        radius: 30,
+                                        backgroundColor: Colors.green.shade50
+                                            .withOpacity(0.3),
+                                      ),
+                                    ),
                                     Center(
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
-                                          FruitIcon(fruitName: fruitName, size: 52, bannerUrl: bannerUrl),
+                                          FruitIcon(
+                                              fruitName: fruitName,
+                                              size: 52,
+                                              bannerUrl: bannerUrl),
                                           const SizedBox(height: 10),
                                           Text(
-                                            fruitName.toUpperCase(),
+                                            _cap(fruitName),
                                             textAlign: TextAlign.center,
                                             style: const TextStyle(
                                               fontSize: 15,
@@ -341,22 +343,23 @@ class _FruitsScreenState extends State<FruitsScreen> {
                               ),
                             );
                           },
+                          childCount: filtered.length,
+                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 1.1,
                         ),
                       ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ],
-      ),
-    );
-  }
-
-  // Helper widget for card decoration
-  Widget Position_BgIcon(Color color) {
-    return Positioned(
-      top: -15,
-      left: -15,
-      child: CircleAvatar(
-        radius: 30,
-        backgroundColor: color.withOpacity(0.3),
       ),
     );
   }

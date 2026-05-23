@@ -32,10 +32,9 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.debug, 
-    // Use debug for dev
+    androidProvider: AndroidProvider.debug,
+    appleProvider: AppleProvider.appAttest,
   );
-  print("✅ Firebase App Check activated with debug mode.");
 
   OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
   OneSignal.initialize("9f8342c0-ae62-4dc2-b578-a8049ae2101d");

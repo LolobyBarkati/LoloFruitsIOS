@@ -19,6 +19,11 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
   final int _pageSize = 12;
   QueryDocumentSnapshot? _lastDocument;
 
+  String _capitalizeFirstLetter(String input) {
+    if (input.isEmpty) return input;
+    return input[0].toUpperCase() + input.substring(1).toLowerCase();
+  }
+
   @override
   void initState() {
     _loadInitialPosts();
@@ -107,7 +112,7 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          '${widget.fruitName.toUpperCase()} Market',
+          '${_capitalizeFirstLetter(widget.fruitName)} Market',
           style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white, fontSize: 18),
         ),
         centerTitle: true,
@@ -137,7 +142,7 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
           children: [
             Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 16),
-            Text('No listings for ${widget.fruitName}', style: const TextStyle(color: Colors.grey)),
+            Text('No listings for ${_capitalizeFirstLetter(widget.fruitName)}', style: const TextStyle(color: Colors.grey)),
           ],
         ),
       );
@@ -177,4 +182,4 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
       },
     );
   }
-}
+} 

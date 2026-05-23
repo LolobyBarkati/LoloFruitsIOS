@@ -1,4 +1,5 @@
 import 'package:barkati_frits/screens/offer2edit.dart';
+import 'package:barkati_frits/services/auto_cleanup_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'explore.dart';
@@ -14,6 +15,12 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    AutoCleanupService.runIfDue();
+  }
 
   final List<Widget> _pages = [
     const ExploreScreen2(),

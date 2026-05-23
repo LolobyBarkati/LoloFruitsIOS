@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -108,6 +109,11 @@ class SubscriptionController with WidgetsBindingObserver {
 
   }
 
+  /// RESTORE PURCHASES
+  Future<void> restorePurchases() async {
+    await _iap.restorePurchases();
+  }
+
   /// HANDLE PURCHASE
   Future<void> _handlePurchase(PurchaseDetails purchase) async {
 
@@ -140,6 +146,10 @@ class SubscriptionController with WidgetsBindingObserver {
       "paymentId": purchase.purchaseID,
       "productId": purchase.productID,
       "purchaseToken": purchase.verificationData.serverVerificationData,
+
+      // iOS: links this record to future Apple ASSN renewal webhooks
+      // On first purchase, transactionId == originalTransactionId on Apple's side
+      if (Platform.isIOS) "originalTransactionId": purchase.purchaseID,
 
       "plan": isYearly ? "yearly" : "monthly",
       "status": true,

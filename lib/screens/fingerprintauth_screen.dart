@@ -61,6 +61,12 @@ class _FingerprintAuthScreenState extends State<FingerprintAuthScreen> {
           ),
           TextButton(
             onPressed: () {
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+            child: const Text('Use Password'),
+          ),
+          TextButton(
+            onPressed: () {
               Navigator.pop(context);
               _authenticateWithFingerprint();
             },
