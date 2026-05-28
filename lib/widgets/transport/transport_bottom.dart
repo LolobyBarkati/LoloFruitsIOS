@@ -25,8 +25,9 @@ class TransportBottomSheet extends StatelessWidget {
   const TransportBottomSheet({
     Key? key,
     required this.documentId,
-    this.fromQuery = '',  // defaults to empty = no search = show "Multiple Cities"
-    this.toQuery   = '',
+    this.fromQuery =
+        '', // defaults to empty = no search = show "Multiple Cities"
+    this.toQuery = '',
   }) : super(key: key);
 
   final Color primaryGreen = const Color(0xFF80C031);
@@ -84,41 +85,39 @@ class TransportBottomSheet extends StatelessWidget {
           );
         }
 
-        final data    = snap.data!.data() as Map<String, dynamic>;
-        final contact = data['number'] ?? data['contact'] ?? data['phone'] ??
-            data['director_number'] ?? data['mobile'] ?? data['contact_number'] ?? '';
+        final data = snap.data!.data() as Map<String, dynamic>;
+        final contact = (data['contact'] ?? data['phone'] ?? data['mobile'] ?? data['phoneNumber'] ?? data['phone_number'] ?? data['contact_number'] ?? data['driver_number'] ?? data['number'] ?? '').toString();
         final bool hasContact = contact.toString().trim().isNotEmpty;
-        final List<dynamic> modes = data['transport_modes'] ?? data['modes'] ?? [];
 
         final String fromRaw = data['from'] ?? '';
-        final String toRaw   = data['to']   ?? '';
+        final String toRaw = data['to'] ?? '';
 
         // Cities to display — filtered by what was searched
         final List<String> fromCities = _filtered(fromRaw, fromQuery);
-        final List<String> toCities   = _filtered(toRaw,   toQuery);
+        final List<String> toCities = _filtered(toRaw, toQuery);
 
         // Whether we have actual cities to show or just show "Multiple Cities"
         final bool fromIsMultiNoSearch =
             _parse(fromRaw).length > 1 && fromQuery.trim().isEmpty;
         final bool toIsMultiNoSearch =
-            _parse(toRaw).length   > 1 && toQuery.trim().isEmpty;
+            _parse(toRaw).length > 1 && toQuery.trim().isEmpty;
 
         return DraggableScrollableSheet(
           expand: false,
           initialChildSize: 0.6,
-          minChildSize:     0.4,
-          maxChildSize:     0.92,
+          minChildSize: 0.4,
+          maxChildSize: 0.92,
           builder: (_, controller) => SingleChildScrollView(
             controller: controller,
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 // ── Drag handle ───────────────────────────────
                 Center(
                   child: Container(
-                    width: 40, height: 4,
+                    width: 40,
+                    height: 4,
                     margin: const EdgeInsets.only(bottom: 20),
                     decoration: BoxDecoration(
                       color: Colors.grey[300],
@@ -145,7 +144,8 @@ class TransportBottomSheet extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            (data['company'] ?? 'Unknown Carrier').toUpperCase(),
+                            (data['company'] ?? 'Unknown Carrier')
+                                .toUpperCase(),
                             style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w900,
@@ -169,75 +169,27 @@ class TransportBottomSheet extends StatelessWidget {
 
                 // ── Pickup locations ──────────────────────────
                 _locationSection(
-                  label:          'PICKUP LOCATIONS',
-                  icon:           Icons.radio_button_checked,
-                  iconColor:      primaryGreen,
-                  raw:            fromRaw,
+                  label: 'PICKUP LOCATIONS',
+                  icon: Icons.radio_button_checked,
+                  iconColor: primaryGreen,
+                  raw: fromRaw,
                   filteredCities: fromCities,
                   isMultiNoSearch: fromIsMultiNoSearch,
-                  searchQuery:    fromQuery,
+                  searchQuery: fromQuery,
                 ),
 
                 const SizedBox(height: 12),
 
                 // ── Drop locations ────────────────────────────
                 _locationSection(
-                  label:          'DROP LOCATIONS',
-                  icon:           Icons.location_on_rounded,
-                  iconColor:      accentOrange,
-                  raw:            toRaw,
+                  label: 'DROP LOCATIONS',
+                  icon: Icons.location_on_rounded,
+                  iconColor: accentOrange,
+                  raw: toRaw,
                   filteredCities: toCities,
                   isMultiNoSearch: toIsMultiNoSearch,
-                  searchQuery:    toQuery,
+                  searchQuery: toQuery,
                 ),
-
-                if (modes.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade100),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.directions_rounded, color: primaryGreen, size: 14),
-                            const SizedBox(width: 6),
-                            Text('TRANSPORT MODES',
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.grey[500],
-                                    letterSpacing: 1.1)),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: modes.map<Widget>((m) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: primaryGreen.withOpacity(0.07),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: primaryGreen.withOpacity(0.18)),
-                            ),
-                            child: Text(m.toString(),
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey[800])),
-                          )).toList(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
 
                 const SizedBox(height: 20),
 
@@ -246,8 +198,10 @@ class TransportBottomSheet extends StatelessWidget {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton.icon(
-                    onPressed: hasContact ? () => _call(contact.toString()) : null,
-                    icon: const Icon(Icons.call_rounded, color: Colors.white, size: 18),
+                    onPressed:
+                        hasContact ? () => _call(contact.toString()) : null,
+                    icon: const Icon(Icons.call_rounded,
+                        color: Colors.white, size: 18),
                     label: Text(
                       hasContact
                           ? 'Call Office  •  $contact'
@@ -316,15 +270,15 @@ class TransportBottomSheet extends StatelessWidget {
   //    If nothing matched (shouldn't happen because card already filters)
   //    falls back to "Multiple Cities" badge.
   Widget _locationSection({
-    required String       label,
-    required IconData     icon,
-    required Color        iconColor,
-    required String       raw,
+    required String label,
+    required IconData icon,
+    required Color iconColor,
+    required String raw,
     required List<String> filteredCities,
-    required bool         isMultiNoSearch,
-    required String       searchQuery,
+    required bool isMultiNoSearch,
+    required String searchQuery,
   }) {
-    final allCities  = _parse(raw);
+    final allCities = _parse(raw);
     final totalCount = allCities.length;
 
     return Container(
@@ -338,7 +292,6 @@ class TransportBottomSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           // ── Header row: label + count badge ──────────────────
           Row(
             children: [
@@ -378,7 +331,6 @@ class TransportBottomSheet extends StatelessWidget {
                     fontSize: 14,
                     color: Colors.grey[400],
                     fontWeight: FontWeight.w500))
-
           else if (allCities.length == 1)
             // Single city — show plainly
             Text(allCities[0],
@@ -386,25 +338,21 @@ class TransportBottomSheet extends StatelessWidget {
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: Colors.black87))
-
           else if (isMultiNoSearch)
             // Multiple cities but user did NOT search — show badge only
             // This is the key fix: no list dump
             _multipleCitiesBadge(iconColor, totalCount)
-
           else if (filteredCities.isEmpty)
             // Searched but no matches (fallback — normally shouldn't reach here
             // because the list screen already filters cards)
             _multipleCitiesBadge(iconColor, totalCount)
-
           else
             // Searched and we have matched cities — show chips for matches only
             Wrap(
-              spacing:    6,
+              spacing: 6,
               runSpacing: 6,
-              children: filteredCities
-                  .map((city) => _chip(city, iconColor))
-                  .toList(),
+              children:
+                  filteredCities.map((city) => _chip(city, iconColor)).toList(),
             ),
         ],
       ),
@@ -430,9 +378,7 @@ class TransportBottomSheet extends StatelessWidget {
               const SizedBox(width: 6),
               Text('Serves $count Cities',
                   style: TextStyle(
-                      color: color,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700)),
+                      color: color, fontSize: 13, fontWeight: FontWeight.w700)),
             ],
           ),
         ),
@@ -441,7 +387,9 @@ class TransportBottomSheet extends StatelessWidget {
           child: Text(
             'Search a city above to see if it is covered',
             style: TextStyle(
-                color: Colors.grey[400], fontSize: 11, fontStyle: FontStyle.italic),
+                color: Colors.grey[400],
+                fontSize: 11,
+                fontStyle: FontStyle.italic),
           ),
         ),
       ],

@@ -1,7 +1,9 @@
 import 'package:barkati_frits/models/subscription/subscription_status.dart';
-import 'package:barkati_frits/widgets/agents/agent_bottom_sheet.dart'; 
+import 'package:barkati_frits/widgets/agents/agent_bottom_sheet.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class AgentsScreen extends StatefulWidget {
   static const String routeName = '/agents';
@@ -14,6 +16,25 @@ class AgentsScreen extends StatefulWidget {
 class _AgentsScreenState extends State<AgentsScreen> {
   final Color primaryGreen = const Color(0xFF80C031);
   final Color scaffoldBg = const Color(0xFFF8FAF8);
+  static const String _agentCache = 'AGENTS_CACHE';
+
+  Future<void> _cacheAgents(List<QueryDocumentSnapshot> agents) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = agents
+          .map((doc) => {
+                'id': doc.id,
+                'name': doc.get('name') ?? 'Unknown',
+                'image_url': doc.get('image_url') ?? '',
+                'phone': doc.get('phone') ?? '',
+                'rating': doc.get('rating') ?? 0,
+              })
+          .toList();
+      await prefs.setString(_agentCache, jsonEncode(data));
+    } catch (e) {
+      debugPrint('Agent cache error: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +68,9 @@ class _AgentsScreenState extends State<AgentsScreen> {
             }
 
             final allAgents = snapshot.data!.docs;
+            if (allAgents.isNotEmpty) {
+              _cacheAgents(allAgents);
+            }
             final topAgents = allAgents.take(3).toList();
             final otherAgents = allAgents.skip(3).toList();
 

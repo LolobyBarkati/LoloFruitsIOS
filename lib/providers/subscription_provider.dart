@@ -14,7 +14,7 @@ class SubscriptionController with WidgetsBindingObserver {
   SubscriptionController({
     required this.context,
     required this.onLoadingChanged,
-    required this.onStateUpdate,
+    required this.onStateUpdate,  
   });
 
   final InAppPurchase _iap = InAppPurchase.instance;

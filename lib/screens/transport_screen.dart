@@ -2,7 +2,6 @@ import 'package:barkati_frits/models/subscription/subscription_status.dart';
 import 'package:barkati_frits/widgets/transport/transport_bottom.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class TransportScreen extends StatefulWidget {
   static const String routeName = '/transport';
@@ -208,8 +207,7 @@ class _TransportScreenState extends State<TransportScreen> {
     final String company    = data['company'] ?? 'Unknown Carrier';
     final String fromRaw    = data['from']    ?? '';
     final String toRaw      = data['to']      ?? '';
-    final String contact    = data['number'] ?? data['contact'] ?? data['phone'] ??
-        data['director_number'] ?? data['mobile'] ?? data['contact_number'] ?? '';
+    final String contact    = (data['contact'] ?? data['phone'] ?? data['mobile'] ?? data['phoneNumber'] ?? data['phone_number'] ?? data['contact_number'] ?? data['driver_number'] ?? data['number'] ?? '').toString();
     final bool   hasContact = contact.trim().isNotEmpty;
 
     final bool   multiFrom = _parse(fromRaw).length > 1;
@@ -219,44 +217,42 @@ class _TransportScreenState extends State<TransportScreen> {
     final bool   fromBadge = multiFrom && fromQ.trim().isEmpty;
     final bool   toBadge   = multiTo   && toQ.trim().isEmpty;
 
-    final double progress =
-        ((data['progress'] ?? 50) / 100).toDouble().clamp(0.0, 1.0);
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        children: [
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))],
-          ),
-          child: Column(
-            children: [
-
-              // ── Company row ───────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 14, 44, 0),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 38, height: 38,
-                      decoration: BoxDecoration(
-                        color: primaryGreen.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(Icons.local_shipping_rounded, color: primaryGreen, size: 19),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(company,
-                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: -0.2),
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
+          // ── Company + status row ──────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+            child: Row(
+              children: [
+                Container(
+                  width: 38, height: 38,
+                  decoration: BoxDecoration(
+                    color: primaryGreen.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.local_shipping_rounded, color: primaryGreen, size: 19),
                 ),
-              ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(company,
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: -0.2),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                ),
+                Icon(Icons.verified_rounded, color: primaryGreen, size: 16),
+                const SizedBox(width: 4),
+                Text('VERIFIED',
+                    style: TextStyle(color: primaryGreen, fontSize: 10, fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
 
           const SizedBox(height: 10),
 
@@ -277,31 +273,6 @@ class _TransportScreenState extends State<TransportScreen> {
 
           const SizedBox(height: 10),
 
-          // ── Progress bar ──────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: Colors.grey[100],
-                      color: primaryGreen,
-                      minHeight: 5,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text('${(progress * 100).toInt()}%',
-                    style: TextStyle(fontSize: 10, color: Colors.grey[400], fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
           // ── Action buttons ────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -309,15 +280,16 @@ class _TransportScreenState extends State<TransportScreen> {
               children: [
                 Expanded(
                   child: _btn(
-                    label:     hasContact ? 'Contact' : 'No Contact',
+                    label:     'Contact',
                     icon:      Icons.phone_rounded,
                     bgColor:   hasContact ? primaryGreen : Colors.grey[200]!,
                     textColor: hasContact ? Colors.white : Colors.grey[400]!,
                     onTap: hasContact
-                        ? () async {
-                            final uri = Uri(scheme: 'tel', path: contact);
-                            if (await canLaunchUrl(uri)) launchUrl(uri);
-                          }
+                        ? () => ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Contact: $contact'),
+                                behavior: SnackBarBehavior.floating,
+                              ))
                         : null,
                   ),
                 ),
@@ -349,23 +321,7 @@ class _TransportScreenState extends State<TransportScreen> {
           ),
         ],
       ),
-    ),
-    Positioned(
-      top: 12,
-      right: 22,
-      child: Container(
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: primaryGreen,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 1.5),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 4, offset: const Offset(0, 2))],
-        ),
-        child: const Icon(Icons.check_rounded, color: Colors.white, size: 11),
-      ),
-    ),
-  ],
-);
+    );
   }
 
   // ── Route chip ────────────────────────────────────────────────

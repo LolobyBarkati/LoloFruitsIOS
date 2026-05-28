@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barkati_frits/screens/product_detail_screen.dart';
 import 'package:barkati_frits/widgets/fruits/fruit_post_card.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class FruitPostsScreen extends StatefulWidget {
   final String fruitName;
@@ -19,9 +21,81 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
   final int _pageSize = 12;
   QueryDocumentSnapshot? _lastDocument;
 
+  String _searchQuery = '';
+  String _selectedCountry = 'All Countries';
+  String _sortBy = 'newest'; // newest, oldest, price_low, price_high
+  Set<String> _availableCountries = {};
+
+  Future<void> _cachePosts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = _posts
+          .map((doc) => {
+                'id': doc.id,
+                'data': doc.data(),
+              })
+          .toList();
+      await prefs.setString(
+        'FRUIT_POSTS_${widget.fruitName}'.toUpperCase(),
+        jsonEncode(data),
+      );
+    } catch (e) {
+      debugPrint('Post cache error: $e');
+    }
+  }
+
+  Future<void> _loadCachedPosts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cached =
+          prefs.getString('FRUIT_POSTS_${widget.fruitName}'.toUpperCase());
+      if (cached != null && _posts.isEmpty) {
+        debugPrint('Loaded posts from cache for ${widget.fruitName}');
+      }
+    } catch (e) {
+      debugPrint('Load post cache error: $e');
+    }
+  }
+
   String _capitalizeFirstLetter(String input) {
     if (input.isEmpty) return input;
     return input[0].toUpperCase() + input.substring(1).toLowerCase();
+  }
+
+  List<QueryDocumentSnapshot> _getFilteredAndSortedPosts() {
+    List<QueryDocumentSnapshot> filtered = _posts.where((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      final fruitName = (data['fruit_name'] ?? '').toString().toLowerCase();
+      final country = (data['country'] ?? '').toString().toLowerCase();
+      final matchesSearch = _searchQuery.isEmpty ||
+          fruitName.contains(_searchQuery.toLowerCase()) ||
+          country.contains(_searchQuery.toLowerCase());
+      final matchesCountry = _selectedCountry == 'All Countries' ||
+          country == _selectedCountry.toLowerCase();
+      return matchesSearch && matchesCountry;
+    }).toList();
+
+    filtered.sort((a, b) {
+      final dataA = a.data() as Map<String, dynamic>;
+      final dataB = b.data() as Map<String, dynamic>;
+
+      switch (_sortBy) {
+        case 'oldest':
+          return (dataA['timestamp'] as dynamic).compareTo(dataB['timestamp'] as dynamic);
+        case 'price_low':
+          final priceA = (dataA['price'] as num?)?.toDouble() ?? 0;
+          final priceB = (dataB['price'] as num?)?.toDouble() ?? 0;
+          return priceA.compareTo(priceB);
+        case 'price_high':
+          final priceA = (dataA['price'] as num?)?.toDouble() ?? 0;
+          final priceB = (dataB['price'] as num?)?.toDouble() ?? 0;
+          return priceB.compareTo(priceA);
+        default: // newest
+          return (dataB['timestamp'] as dynamic).compareTo(dataA['timestamp'] as dynamic);
+      }
+    });
+
+    return filtered;
   }
 
   @override
@@ -42,6 +116,8 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
     if (_isLoading) return;
     setState(() => _isLoading = true);
     try {
+      await _loadCachedPosts();
+
       final query = FirebaseFirestore.instance
           .collection('fruits')
           .doc(widget.fruitName)
@@ -55,6 +131,8 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
         _posts.addAll(snapshot.docs);
         _lastDocument = snapshot.docs.last;
         _hasMore = snapshot.docs.length == _pageSize;
+        _extractCountries();
+        await _cachePosts();
       } else {
         _hasMore = false;
       }
@@ -62,6 +140,17 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
       debugPrint(e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _extractCountries() {
+    _availableCountries = {};
+    for (final doc in _posts) {
+      final data = doc.data() as Map<String, dynamic>;
+      final country = data['country'] as String?;
+      if (country != null && country.isNotEmpty) {
+        _availableCountries.add(country);
+      }
     }
   }
 
@@ -82,6 +171,8 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
         _posts.addAll(snapshot.docs);
         _lastDocument = snapshot.docs.last;
         _hasMore = snapshot.docs.length == _pageSize;
+        _extractCountries();
+        await _cachePosts();
       } else {
         _hasMore = false;
       }
@@ -126,7 +217,107 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
           ),
         ),
       ),
-      body: _buildGrid(),
+      body: Column(
+        children: [
+          _buildSearchAndFilters(),
+          Expanded(child: _buildGrid()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilters() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          // Search Bar
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: TextField(
+              onChanged: (value) => setState(() => _searchQuery = value),
+              decoration: InputDecoration(
+                hintText: 'Search by name or country...',
+                hintStyle: TextStyle(color: Colors.grey.shade400),
+                prefixIcon: const Icon(Icons.search, color: Color(0xFF689F38)),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Filters Row
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                // Country Filter
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: DropdownButton<String>(
+                    value: _selectedCountry,
+                    items: [
+                      const DropdownMenuItem(
+                        value: 'All Countries',
+                        child: Text('All Countries', style: TextStyle(fontSize: 12)),
+                      ),
+                      ..._availableCountries.toList().map(
+                            (country) => DropdownMenuItem(
+                              value: country,
+                              child: Text(country, style: const TextStyle(fontSize: 12)),
+                            ),
+                          ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _selectedCountry = value);
+                      }
+                    },
+                    underline: const SizedBox(),
+                    isDense: true,
+                    isExpanded: false,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Sort Filter
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: DropdownButton<String>(
+                    value: _sortBy,
+                    items: const [
+                      DropdownMenuItem(value: 'newest', child: Text('Newest', style: TextStyle(fontSize: 12))),
+                      DropdownMenuItem(value: 'oldest', child: Text('Oldest', style: TextStyle(fontSize: 12))),
+                      DropdownMenuItem(value: 'price_low', child: Text('Price: Low to High', style: TextStyle(fontSize: 12))),
+                      DropdownMenuItem(value: 'price_high', child: Text('Price: High to Low', style: TextStyle(fontSize: 12))),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _sortBy = value);
+                      }
+                    },
+                    underline: const SizedBox(),
+                    isDense: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -134,6 +325,8 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
     if (_isLoading && _posts.isEmpty) {
       return const Center(child: CircularProgressIndicator(color: Color(0xFF689F38)));
     }
+
+    final filteredPosts = _getFilteredAndSortedPosts();
 
     if (_posts.isEmpty) {
       return Center(
@@ -148,6 +341,19 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
       );
     }
 
+    if (filteredPosts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.filter_alt_off, size: 64, color: Colors.grey.shade300),
+            const SizedBox(height: 16),
+            const Text('No results matching your filters', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
     return GridView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
@@ -157,16 +363,15 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
         crossAxisSpacing: 16,
         childAspectRatio: 0.78,
       ),
-      itemCount: _posts.length + (_hasMore ? 1 : 0),
+      itemCount: filteredPosts.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index == _posts.length) {
+        if (index == filteredPosts.length) {
           return const Center(child: CircularProgressIndicator(color: Color(0xFF689F38)));
         }
 
-        final doc = _posts[index];
+        final doc = filteredPosts[index];
         final data = doc.data() as Map<String, dynamic>;
 
-        // FIXED: Using Class name "FruitPostCard" instead of filename "fruit_posts_screen"
         return FruitPostCard(
           data: data,
           onTap: () => Navigator.push(
@@ -182,4 +387,4 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
       },
     );
   }
-} 
+}

@@ -19,19 +19,19 @@ class FAQScreen extends StatelessWidget {
     },
     {
       'question': 'How do I subscribe?',
-      'answer': 'Tap on "Upgrade to Premium" and complete the payment securely through Google Play billing.'
+      'answer': 'Tap on "Upgrade to Premium" and complete the payment securely through the App Store.'
     },
     {
       'question': 'Will my subscription renew automatically?',
-      'answer': 'Yes. Subscriptions renew automatically at the end of each billing cycle unless cancelled from your Google Play account.'
+      'answer': 'Yes. Subscriptions renew automatically at the end of each billing cycle unless cancelled from your App Store account.'
     },
     {
       'question': 'How can I cancel my subscription?',
-      'answer': 'You can cancel your subscription anytime from your Google Play account under Payments & Subscriptions. After cancellation, you will retain access until the current period ends.'
+      'answer': 'You can cancel your subscription anytime by going to Settings > [your name] > Subscriptions on your iPhone. After cancellation, you will retain access until the current period ends.'
     },
     {
       'question': 'Do you provide refunds?',
-      'answer': 'All sales are final. Since our service provides instant access to premium business data, we do not provide refunds once a subscription is activated, as per Google Play’s digital goods policy.'
+      'answer': 'Refund requests are handled by Apple in accordance with their standard App Store refund policy. If you have a concern about a charge, please contact Apple Support or visit reportaproblem.apple.com.'
     },
     {
       'question': 'Is my data secure?',

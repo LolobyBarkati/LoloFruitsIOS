@@ -111,7 +111,7 @@ class OfferDetailsSheet extends StatelessWidget {
                   children: [
                     _buildDetailRow(Icons.storefront_rounded, "Company", data['companyName'] ?? 'Business Hidden'),
                     _buildDetailRow(Icons.person_pin_rounded, "Proprietor", data['ownerName'] ?? 'Manager'),
-                    _buildDetailRow(Icons.payments_rounded, "Market Rate", data['rate'] ?? 'Ask for Price', isPrice: true),
+                    _buildDetailRow(Icons.payments_rounded, "Rate", data['rate'] ?? 'Ask for Price', isPrice: true),
                   ],
                 ),
               ),

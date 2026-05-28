@@ -57,10 +57,8 @@ class TransportDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String contact    = entry['number'] ?? entry['contact'] ?? entry['phone'] ??
-        entry['director_number'] ?? entry['mobile'] ?? entry['contact_number'] ?? '';
+    final String contact    = (entry['contact'] ?? entry['phone'] ?? entry['mobile'] ?? entry['phoneNumber'] ?? entry['phone_number'] ?? entry['contact_number'] ?? entry['driver_number'] ?? entry['number'] ?? '').toString();
     final bool   hasContact = contact.trim().isNotEmpty;
-    final List<dynamic> modes = entry['transport_modes'] ?? entry['modes'] ?? [];
     final String fromRaw    = entry['from'] ?? '';
     final String toRaw      = entry['to']   ?? '';
 
@@ -126,26 +124,22 @@ class TransportDetailScreen extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.4),
                   ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: primaryGreen.withOpacity(0.09),
-                      borderRadius: BorderRadius.circular(20),
+                  if ((entry['status'] ?? '').toString().isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: primaryGreen.withOpacity(0.09),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(entry['status'],
+                          style: TextStyle(
+                              color: primaryGreen,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700)),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.check_circle_rounded, color: primaryGreen, size: 13),
-                        const SizedBox(width: 4),
-                        Text('Verified',
-                            style: TextStyle(
-                                color: primaryGreen,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700)),
-                      ],
-                    ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -173,59 +167,6 @@ class TransportDetailScreen extends StatelessWidget {
               filteredCities: toCities,
               isMultiNoSearch: toIsMultiNoSearch,
             ),
-
-            if (modes.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3))
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.directions_rounded, color: primaryGreen, size: 14),
-                        const SizedBox(width: 6),
-                        Text('TRANSPORT MODES',
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.grey[500],
-                                letterSpacing: 1.1)),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: modes.map<Widget>((m) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: primaryGreen.withOpacity(0.07),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: primaryGreen.withOpacity(0.18)),
-                        ),
-                        child: Text(m.toString(),
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey[800])),
-                      )).toList(),
-                    ),
-                  ],
-                ),
-              ),
-            ],
 
             const SizedBox(height: 20),
 

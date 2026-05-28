@@ -130,19 +130,7 @@ class _HomeColdStorageWidgetState extends State<HomeColdStorageWidget> {
             ),
           ),
 
-          const SizedBox(height: 4),
-
-          // 🔹 PRICE
-          Text(
-            '₹${s.price} / week',
-            style: TextStyle(
-              fontSize: 14, // 🔥 increased
-              color: Colors.grey.shade700,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
 
           // 🔹 ACTION ROW
           Row(

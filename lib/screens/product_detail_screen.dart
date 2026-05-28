@@ -298,7 +298,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       _buildDetailRow(Icons.storefront_rounded, "Company", data['company_name'] ?? 'N/A'),
                                       _buildDetailRow(Icons.person_pin_rounded, "Proprietor", data['owner_name'] ?? 'N/A'),
                                       _buildDetailRow(Icons.supervisor_account_rounded, "Manager", data['manager_name'] ?? 'N/A'),
-                                      _buildDetailRow(Icons.payments_rounded, "Market Rate", displayRate, isPrice: true),
+                                      _buildDetailRow(Icons.payments_rounded, "Rate", displayRate, isPrice: true),
                                     ],
                                   ),
                                 ),

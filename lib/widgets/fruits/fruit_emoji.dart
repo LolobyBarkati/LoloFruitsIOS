@@ -45,13 +45,18 @@ String fruitEmoji(String fruitName) {
 /// otherwise null (caller should fall back to [fruitEmoji]).
 // Maps fruit name variants → actual filename (without .png)
 const _fruitAssetNames = {
-  'grape': 'grapes',       // singular → plural file
-  'pears': 'pear',         // plural → singular file
-  'cherries': 'cherry',    // plural → singular file
-  'exoticfruits': 'exoticfruits',
-  'mandarin': 'orange',    // mandarin → orange icon
+  'grape': 'grapes', // singular → plural file
+  'pears': 'pear', // plural → singular file
+  'cherries': 'cherry', // plural → singular file
+  'otherfruit': 'otherfruits',
+  'exoticfruits': 'otherfruits',
+  'mandarin': 'orange', // mandarin → orange icon
   'tangerine': 'orange',
   'clementine': 'orange',
+  'dragon': 'dragon',
+  'avcado': 'avacado',
+  'avacado': 'avacado',
+  'dates': 'dates',
 };
 
 String fruitAssetPath(String fruitName) {
@@ -59,12 +64,6 @@ String fruitAssetPath(String fruitName) {
   final mapped = _fruitAssetNames[key] ?? key;
   return 'assets/icons/fruits/$mapped.png';
 }
-
-// Per-fruit scale overrides for assets that have extra whitespace.
-const _fruitScales = {
-  'dragonfruit': 1.55,
-  'plum': 1.55,
-};
 
 /// A widget that shows a fruit icon with priority:
 /// 1. [bannerUrl] from Firestore (if provided and non-empty)
@@ -75,36 +74,42 @@ class FruitIcon extends StatelessWidget {
   final double size;
   final String? bannerUrl;
 
-  const FruitIcon({super.key, required this.fruitName, this.size = 36, this.bannerUrl});
+  const FruitIcon(
+      {super.key, required this.fruitName, this.size = 36, this.bannerUrl});
+
+  double _getAdjustedSize() {
+    final key = fruitName.toLowerCase().trim();
+    if (key.contains('dragonfruit') || key.contains('dragon') || key.contains('plum')) {
+      return size * 1.55;
+    }
+    return size;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final adjustedSize = _getAdjustedSize();
     if (bannerUrl != null && bannerUrl!.isNotEmpty) {
       return Image.network(
         bannerUrl!,
-        width: size,
-        height: size,
+        width: adjustedSize,
+        height: adjustedSize,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _localAsset(),
+        errorBuilder: (_, __, ___) => _localAsset(adjustedSize),
       );
     }
-    return _localAsset();
+    return _localAsset(adjustedSize);
   }
 
-  Widget _localAsset() {
-    final key = fruitName.toLowerCase().trim().replaceAll(' ', '');
-    final scale = _fruitScales[key] ?? 1.0;
-    final img = Image.asset(
+  Widget _localAsset(double adjustedSize) {
+    return Image.asset(
       fruitAssetPath(fruitName),
-      width: size,
-      height: size,
+      width: adjustedSize,
+      height: adjustedSize,
       fit: BoxFit.contain,
       errorBuilder: (_, __, ___) => Text(
         fruitEmoji(fruitName),
-        style: TextStyle(fontSize: size * 0.75),
+        style: TextStyle(fontSize: adjustedSize * 0.75),
       ),
     );
-    if (scale == 1.0) return img;
-    return Transform.scale(scale: scale, child: img);
   }
 }

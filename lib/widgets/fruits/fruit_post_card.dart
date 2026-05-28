@@ -17,6 +17,11 @@ class FruitPostCard extends StatelessWidget {
     return '';
   }
 
+  String _capitalizeFirstLetter(String input) {
+    if (input.isEmpty) return input;
+    return input[0].toUpperCase() + input.substring(1).toLowerCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     final name = data['fruit_name'] ?? 'No Name';
@@ -92,20 +97,6 @@ class FruitPostCard extends StatelessWidget {
                 ),
               ),
 
-              // Emoji Badge (top-left)
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(emoji, style: const TextStyle(fontSize: 18)),
-                ),
-              ),
-
               // Video Badge
               if (videoUrl != null)
                 Positioned(
@@ -147,7 +138,7 @@ class FruitPostCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        name.toUpperCase(),
+                        _capitalizeFirstLetter(name),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(

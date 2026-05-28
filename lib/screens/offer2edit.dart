@@ -24,7 +24,7 @@ class _Offer2editState extends State<Offer2edit> {
 
   Future<void> _checkSubscription() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null || user.email == null) {
+    if (user == null) {
       setState(() {
         _isSubscribed = false;
         _subCheckLoading = false;
@@ -34,7 +34,9 @@ class _Offer2editState extends State<Offer2edit> {
 
     final query = await FirebaseFirestore.instance
         .collection('payments')
-        .where('email', isEqualTo: user.email)
+        .where('userId', isEqualTo: user.uid)
+        .orderBy('timestamp', descending: true)
+        .limit(1)
         .get();
 
     if (query.docs.isEmpty) {
@@ -50,7 +52,6 @@ class _Offer2editState extends State<Offer2edit> {
     final bool status = data['status'] ?? false;
 
     if (expiry == null || expiry.toDate().isBefore(DateTime.now())) {
-      await query.docs.first.reference.update({'status': false});
       setState(() {
         _isSubscribed = false;
         _subCheckLoading = false;
