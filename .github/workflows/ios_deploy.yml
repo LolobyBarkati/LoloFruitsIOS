@@ -21,14 +21,21 @@ jobs:
           flutter-version: '3.29.3'
           channel: 'stable'
 
+      - name: Install Certificate
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          security create-keychain -p "temp123" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "temp123" "$KEYCHAIN_PATH"
+          echo "$CERTIFICATE_BASE64" | base64 --decode -o "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN_PATH" -P "$CERTIFICATE_PASSWORD" -A
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
       - name: Install dependencies
         run: flutter pub get
-
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-          bundler-cache: true
 
       - name: Install CocoaPods
         run: |
