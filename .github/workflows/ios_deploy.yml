@@ -32,6 +32,7 @@ jobs:
           security unlock-keychain -p "temp123" "$KEYCHAIN_PATH"
           echo "$CERTIFICATE_BASE64" | base64 --decode -o "$RUNNER_TEMP/cert.p12"
           security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN_PATH" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12
+          security set-key-partition-list -S apple-tool:,apple: -s -k "temp123" "$KEYCHAIN_PATH"
           security list-keychain -d user -s "$KEYCHAIN_PATH"
 
       - name: Install Provisioning Profile
@@ -40,8 +41,10 @@ jobs:
         run: |
           PP_PATH="$RUNNER_TEMP/profile.mobileprovision"
           echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o "$PP_PATH"
+          UUID=$(grep -a -A1 'UUID' "$PP_PATH" | grep -v UUID | tr -d '\n' | tr -d ' ' | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
+          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID.mobileprovision"
+          echo "Installed profile UUID: $UUID"
 
       - name: Install dependencies
         run: flutter pub get
@@ -60,32 +63,6 @@ jobs:
         run: |
           mkdir -p ~/.appstoreconnect/private_keys
           echo "${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}" > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}.p8
-
-      - name: Update ExportOptions
-        run: |
-          cat > ios/ExportOptions.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>app-store</string>
-              <key>teamID</key>
-              <string>498MBUQ72K</string>
-              <key>uploadBitcode</key>
-              <false/>
-              <key>uploadSymbols</key>
-              <true/>
-              <key>signingStyle</key>
-              <string>manual</string>
-              <key>provisioningProfiles</key>
-              <dict>
-                  <key>com.lolo.barkati</key>
-                  <string>LoLo Fruits App Store</string>
-              </dict>
-          </dict>
-          </plist>
-          EOF
 
       - name: Build iOS IPA
         run: |
