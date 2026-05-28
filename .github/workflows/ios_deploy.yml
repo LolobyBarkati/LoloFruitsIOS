@@ -9,7 +9,7 @@ on:
 jobs:
   build-and-upload:
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Checkout code
@@ -18,7 +18,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.0'
+          flutter-version: '3.29.3'
           channel: 'stable'
 
       - name: Install dependencies
@@ -40,27 +40,21 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Import Certificate and Provisioning Profile
-        env:
-          TEAM_ID: ${{ secrets.TEAM_ID }}
+      - name: Create API Key file
         run: |
-          # Create API key file
           mkdir -p ~/.appstoreconnect/private_keys
           echo "${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}" > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}.p8
 
-      - name: Build iOS Archive
+      - name: Build iOS IPA
         run: |
           flutter build ipa \
             --release \
             --export-options-plist=ios/ExportOptions.plist
 
       - name: Upload to App Store Connect
-        env:
-          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           xcrun altool --upload-app \
             --type ios \
             --file "build/ios/ipa/barkati_frits.ipa" \
-            --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
-            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+            --apiKey "${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}" \
+            --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}"
