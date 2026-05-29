@@ -32,18 +32,4 @@ post_install do |installer|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
     end
   end
-
-  # Patch -G flag from xcconfig files written on disk
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      xcconfig_path = config.base_configuration_reference&.real_path
-      next unless xcconfig_path&.exist?
-      xcconfig_content = File.read(xcconfig_path)
-      if xcconfig_content.match?(/-G\d*/)
-        puts "Patching -G flag in #{xcconfig_path}"
-        fixed_content = xcconfig_content.gsub(/-G\d*/, '')
-        File.write(xcconfig_path, fixed_content)
-      end
-    end
-  end
 end
