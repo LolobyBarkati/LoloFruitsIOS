@@ -65,9 +65,6 @@ jobs:
           flutter build ipa \
             --release \
             --export-options-plist=ios/ExportOptions.plist
-        env:
-          OTHER_CFLAGS: ""
-          OTHER_CXXFLAGS: ""
 
       - name: Upload to App Store Connect
         run: |
