@@ -15,7 +15,7 @@
     <key>provisioningProfiles</key>
     <dict>
         <key>com.lolo.barkati</key>
-        <string>YOUR_PROFILE_NAME_HERE</string>
+        <string>LoLo Fruits App Store</string>
     </dict>
 </dict>
 </plist>
