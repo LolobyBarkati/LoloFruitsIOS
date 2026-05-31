@@ -21,7 +21,7 @@ class SubscriptionController with WidgetsBindingObserver {
   StreamSubscription<List<PurchaseDetails>>? _subscription;
 
   final Set<String> _productIds = {
-    "premium_access",
+    "premium_access_monthly",
     "premium_access_yearly",
   };
 
