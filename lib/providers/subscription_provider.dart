@@ -64,7 +64,7 @@ class SubscriptionController with WidgetsBindingObserver {
 
     for (var product in products) {
 
-      if (product.id == "premium_access") {
+      if (product.id == "premium_access_monthly") {
         monthlyProduct = product;
       }
 
@@ -84,11 +84,13 @@ class SubscriptionController with WidgetsBindingObserver {
 
       for (final purchase in purchases) {
 
-        /// ONLY process real purchase
-        if (purchase.status == PurchaseStatus.purchased) {
-
+        if (purchase.status == PurchaseStatus.purchased ||
+            purchase.status == PurchaseStatus.restored) {
           await _handlePurchase(purchase);
+        }
 
+        if (purchase.status == PurchaseStatus.error) {
+          debugPrint('IAP error: ${purchase.error?.message}');
         }
 
         if (purchase.pendingCompletePurchase) {
@@ -182,17 +184,18 @@ class SubscriptionController with WidgetsBindingObserver {
     if (snap.docs.isEmpty) {
 
       isActive = false;
+      expiryDate = null;
       onStateUpdate();
       return;
 
     }
 
-    final expiry =
-        (snap.docs.first.data()['subscription_expiry'] as Timestamp).toDate();
+    final data = snap.docs.first.data();
+    final expiry = (data['subscription_expiry'] as Timestamp).toDate();
+    final status = data['status'] ?? false;
 
     expiryDate = expiry;
-
-    isActive = expiry.isAfter(DateTime.now());
+    isActive = status == true && expiry.isAfter(DateTime.now());
 
     onStateUpdate();
   }

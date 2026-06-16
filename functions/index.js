@@ -92,7 +92,17 @@ exports.playBillingWebhook = onMessagePublished(
   }
 );
 
-// ── iOS: Apple App Store Server Notifications (ASSN) webhook ──────────────
+// ── iOS: Apple App Store Server Notifications (ASSN v2) webhook ──────────────
+// Flow: User buys → Apple StoreKit → Apple calls this endpoint → update Firestore → Flutter reads → premium unlocked
+
+const APPLE_BUNDLE_ID = "com.lolo.barkati";
+
+function decodeAppleJWS(token) {
+  const parts = token.split(".");
+  if (parts.length !== 3) throw new Error("Invalid JWS format");
+  return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+}
+
 exports.appleSubscriptionWebhook = onRequest(async (req, res) => {
 
   if (req.method !== "POST") {
@@ -104,33 +114,25 @@ exports.appleSubscriptionWebhook = onRequest(async (req, res) => {
     const { signedPayload } = req.body;
     if (!signedPayload) return res.status(400).send("Missing signedPayload");
 
-    // Apple sends a 3-part JWS. Decode the payload section (index 1).
-    const parts = signedPayload.split(".");
-    if (parts.length !== 3) return res.status(400).send("Invalid JWS");
-
-    const payload = JSON.parse(
-      Buffer.from(parts[1], "base64url").toString("utf8")
-    );
-
+    // Decode the outer JWS envelope
+    const payload = decodeAppleJWS(signedPayload);
     const { notificationType, subtype, data } = payload;
-    console.log("Apple ASSN event:", notificationType, subtype ?? "");
 
-    // Only handle renewal and new subscription events
-    if (!["DID_RENEW", "SUBSCRIBED"].includes(notificationType)) {
-      console.log("Ignored:", notificationType);
-      return res.status(200).send("Ignored");
+    // Validate this notification belongs to our app
+    if (data?.bundleId !== APPLE_BUNDLE_ID) {
+      console.warn("Bundle ID mismatch:", data?.bundleId);
+      return res.status(400).send("Invalid bundle");
     }
 
-    // signedTransactionInfo is also a JWS — decode it the same way
+    const env = data?.environment ?? "Unknown";
+    console.log(`Apple ASSN [${env}]: ${notificationType}${subtype ? " / " + subtype : ""}`);
+
+    // Decode the inner JWS (transaction info)
     const signedTx = data?.signedTransactionInfo;
     if (!signedTx) return res.status(400).send("Missing signedTransactionInfo");
 
-    const txParts = signedTx.split(".");
-    const txPayload = JSON.parse(
-      Buffer.from(txParts[1], "base64url").toString("utf8")
-    );
-
-    const { originalTransactionId, productId, expiresDate } = txPayload;
+    const tx = decodeAppleJWS(signedTx);
+    const { originalTransactionId, productId, expiresDate } = tx;
 
     if (!originalTransactionId) {
       return res.status(400).send("Missing originalTransactionId");
@@ -138,7 +140,7 @@ exports.appleSubscriptionWebhook = onRequest(async (req, res) => {
 
     const db = admin.firestore();
 
-    // Find the user by originalTransactionId saved at first purchase from Flutter
+    // Find the user's payment record by originalTransactionId (saved at first purchase)
     const paymentQuery = await db
       .collection("payments")
       .where("originalTransactionId", "==", originalTransactionId)
@@ -147,17 +149,54 @@ exports.appleSubscriptionWebhook = onRequest(async (req, res) => {
       .get();
 
     if (paymentQuery.empty) {
-      console.log("No payment found for originalTransactionId:", originalTransactionId);
+      console.warn("No payment found for originalTransactionId:", originalTransactionId);
       return res.status(200).send("Not found");
     }
 
     const paymentData = paymentQuery.docs[0].data();
     const now = new Date();
 
+    // ── Events that deactivate the subscription ──────────────────────────────
+    // EXPIRED              → billing period ended, no renewal
+    // REVOKE               → family sharing revoked or other revocation
+    // REFUND               → Apple issued a refund
+    // GRACE_PERIOD_EXPIRED → billing retry failed after grace period
+    // Note: DID_FAIL_TO_RENEW keeps sub alive during the grace period — do not deactivate
+    const deactivateEvents = ["EXPIRED", "REVOKE", "REFUND", "GRACE_PERIOD_EXPIRED"];
+
+    if (deactivateEvents.includes(notificationType)) {
+      await db.collection("payments").add({
+        userId: paymentData.userId,
+        email: paymentData.email,
+        paymentId: `ASSN_${notificationType}`,
+        productId: productId || paymentData.productId,
+        originalTransactionId: originalTransactionId,
+        plan: paymentData.plan,
+        status: false,
+        subscription_date: now,
+        subscription_expiry: now,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        source: "apple_assn",
+      });
+      console.log(`Subscription deactivated [${notificationType}] for user:`, paymentData.userId);
+      return res.status(200).send("OK");
+    }
+
+    // ── Events that activate or renew the subscription ───────────────────────
+    // DID_RENEW   → successful auto-renewal
+    // SUBSCRIBED  → new subscription or re-subscribe after expiry
+    // DID_RECOVER → billing recovered after a grace period failure
+    const activateEvents = ["DID_RENEW", "SUBSCRIBED", "DID_RECOVER"];
+
+    if (!activateEvents.includes(notificationType)) {
+      console.log("Ignored event type:", notificationType);
+      return res.status(200).send("Ignored");
+    }
+
     // Apple sends expiresDate as milliseconds epoch
     const newExpiry = expiresDate
       ? new Date(expiresDate)
-      : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      : new Date(now.getTime() + (paymentData.plan === "yearly" ? 365 : 30) * 24 * 60 * 60 * 1000);
 
     await db.collection("payments").add({
       userId: paymentData.userId,
@@ -173,7 +212,7 @@ exports.appleSubscriptionWebhook = onRequest(async (req, res) => {
       source: "apple_assn",
     });
 
-    console.log("Apple renewal saved for user:", paymentData.userId);
+    console.log(`Apple ${notificationType} saved. Expires: ${newExpiry.toISOString()} User: ${paymentData.userId}`);
     return res.status(200).send("OK");
 
   } catch (error) {
