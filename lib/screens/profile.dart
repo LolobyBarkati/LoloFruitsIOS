@@ -168,9 +168,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
-          _menuItem(Icons.history, "Transaction History", "View past payments", 
+          _menuItem(Icons.history, "Transaction History", "View past payments",
               () => _showSubscriptionPaymentHistory(context)),
-          _menuItem(Icons.help_outline, "Support & FAQ", "Get help", 
+          _menuItem(Icons.help_outline, "Support & FAQ", "Get help",
               () => _onHelpSupportTap(context)),
           _menuItem(Icons.privacy_tip_outlined, "Privacy Policy", "Data handling", () async {
             final Uri url = Uri.parse('https://www.lolofruits.com/privacy-policy');
@@ -180,6 +180,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final Uri url = Uri.parse('https://www.lolofruits.com/terms');
             if (await canLaunchUrl(url)) await launchUrl(url, mode: LaunchMode.externalApplication);
           }),
+          _menuItemDestructive(Icons.delete_forever_outlined, "Delete Account", "Permanently remove your data",
+              () => _confirmDeleteAccount(context)),
         ],
       ),
     );
@@ -293,6 +295,119 @@ class _ProfileScreenState extends State<ProfileScreen> {
       subtitle: Text(sub, style: const TextStyle(fontSize: 12)),
       trailing: const Icon(Icons.arrow_forward_ios, size: 14),
     );
+  }
+
+  Widget _menuItemDestructive(IconData icon, String title, String subtitle, VoidCallback onTap) {
+    return ListTile(
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+        child: Icon(icon, color: Colors.redAccent, size: 20),
+      ),
+      title: Text(title, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600, fontSize: 15)),
+      subtitle: Text(subtitle, style: TextStyle(color: Colors.redAccent.withValues(alpha: 0.5), fontSize: 12)),
+      trailing: const Icon(Icons.arrow_forward_ios, color: Colors.redAccent, size: 14),
+    );
+  }
+
+  void _confirmDeleteAccount(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text("Delete Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text(
+          "This will permanently delete your account and all associated data including subscription history. This action cannot be undone.",
+          style: TextStyle(color: Colors.white70, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel", style: TextStyle(color: Colors.white38)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _deleteAccount();
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteAccount() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    // Show loading
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator(color: Colors.redAccent)),
+    );
+
+    try {
+      final db = FirebaseFirestore.instance;
+      final uid = currentUser.uid;
+
+      // Delete all payment records
+      final payments = await db.collection('payments').where('userId', isEqualTo: uid).get();
+      for (final doc in payments.docs) {
+        await doc.reference.delete();
+      }
+
+      // Delete user profile document
+      await db.collection('users').doc(uid).delete();
+
+      // Delete Firebase Auth account
+      await currentUser.delete();
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // close loading
+      Navigator.of(context).pushNamedAndRemoveUntil('/onboarding', (_) => false);
+
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // close loading
+
+      if (e.code == 'requires-recent-login') {
+        // Session too old — ask user to log in again first
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF1E293B),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: const Text("Re-login Required", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            content: const Text(
+              "For security, please log out and log back in before deleting your account.",
+              style: TextStyle(color: Colors.white70, height: 1.5),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("OK", style: TextStyle(color: Colors.amber)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.message}'), backgroundColor: Colors.redAccent),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // close loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Something went wrong. Please try again.'), backgroundColor: Colors.redAccent),
+      );
+    }
   }
 
   void _confirmLogout() {

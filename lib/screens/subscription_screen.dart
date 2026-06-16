@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/subscription_provider.dart';
 
 class SubscriptionScreen extends StatefulWidget {
@@ -182,8 +183,68 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
               ),
             ),
           ],
+          const SizedBox(height: 32),
+          _buildLegalFooter(),
         ],
       ),
+    );
+  }
+
+  Widget _buildLegalFooter() {
+    return Column(
+      children: [
+        Text(
+          "Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period. "
+          "Manage or cancel your subscription in iOS Settings → Apple ID → Subscriptions.",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.3),
+            fontSize: 11,
+            height: 1.6,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            GestureDetector(
+              onTap: () async {
+                final uri = Uri.parse('https://www.lolofruits.com/privacy-policy');
+                if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+              },
+              child: const Text(
+                "Privacy Policy",
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 12,
+                  decoration: TextDecoration.underline,
+                  decorationColor: Colors.white54,
+                ),
+              ),
+            ),
+            Text(
+              "  •  ",
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12),
+            ),
+            GestureDetector(
+              onTap: () async {
+                final uri = Uri.parse('https://www.lolofruits.com/terms');
+                if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+              },
+              child: const Text(
+                "Terms of Use",
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 12,
+                  decoration: TextDecoration.underline,
+                  decorationColor: Colors.white54,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 
