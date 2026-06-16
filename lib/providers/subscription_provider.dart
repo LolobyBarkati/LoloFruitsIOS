@@ -130,6 +130,8 @@ class SubscriptionController with WidgetsBindingObserver {
         .get();
 
     if (existing.docs.isNotEmpty) {
+      // Already recorded — refresh status so UI reflects current Firestore state (restore scenario)
+      await checkPaymentStatus();
       return;
     }
 
