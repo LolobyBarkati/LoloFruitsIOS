@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:barkati_frits/screens/login_screen.dart';
 import 'package:barkati_frits/screens/signup_screen.dart';
+import 'package:barkati_frits/screens/home_screen.dart';
 import 'package:barkati_frits/widgets/custom_button.dart';
 
 class OnboardingScreen extends StatelessWidget {
@@ -120,7 +121,22 @@ class OnboardingScreen extends StatelessWidget {
                       textColor: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 4),
+                  Center(
+                    child: TextButton(
+                      onPressed: () => Navigator.pushNamed(context, HomeScreen.routeName),
+                      child: const Text(
+                        'Browse without signing in',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.white70,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

@@ -60,8 +60,8 @@ class _ExploreScreen2State extends State<ExploreScreen2> {
 
   @override
   Widget build(BuildContext context) {
+    final isGuest = FirebaseAuth.instance.currentUser == null;
     return Scaffold(
-      // The text will now change because isSubscribed is updated via setState
       appBar: HomeAppBar(isSubscribed: isSubscribed),
       body: SafeArea(
         child: Container(
@@ -80,19 +80,21 @@ class _ExploreScreen2State extends State<ExploreScreen2> {
                 const HomeBannerSlider(),
                 const SizedBox(height: 12),
                 const FruitsCategoriesWidget(),
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: const [
-                      Expanded(child: HomeTransportBox()),
-                      SizedBox(width: 14),
-                      Expanded(child: HomeAgentBox()),
-                    ],
+                if (!isGuest) ...[
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: const [
+                        Expanded(child: HomeTransportBox()),
+                        SizedBox(width: 14),
+                        Expanded(child: HomeAgentBox()),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-                const HomeColdStorageWidget(),
+                  const SizedBox(height: 32),
+                  const HomeColdStorageWidget(),
+                ],
                 const SizedBox(height: 30),
               ],
             ),

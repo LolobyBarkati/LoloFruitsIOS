@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:barkati_frits/screens/fruit_posts_screen.dart';
 import 'package:barkati_frits/widgets/fruits/fruit_emoji.dart' show FruitIcon;
+import 'package:barkati_frits/utils/utils.dart';
 
 class FruitsScreen extends StatefulWidget {
   static const String routeName = '/fruits';
@@ -233,6 +235,7 @@ class _FruitsScreenState extends State<FruitsScreen> {
                   );
                 }
 
+                final isGuest = FirebaseAuth.instance.currentUser == null;
                 final allFruits = snapshot.data ?? [];
                 final filtered = allFruits.where((f) {
                   return _searchQuery.isEmpty ||
@@ -252,6 +255,10 @@ class _FruitsScreenState extends State<FruitsScreen> {
                     ),
                   );
                 }
+
+                final visibleCount = isGuest ? filtered.length.clamp(0, 3) : filtered.length;
+                final showLock = isGuest && filtered.length > 3;
+                final totalCount = visibleCount + (showLock ? 1 : 0);
 
                 return CustomScrollView(
                   slivers: [
@@ -274,6 +281,35 @@ class _FruitsScreenState extends State<FruitsScreen> {
                       sliver: SliverGrid(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
+                            if (index >= visibleCount) {
+                              return GestureDetector(
+                                onTap: () => showLoginRequired(context),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(24),
+                                    border: Border.all(color: Colors.grey.shade200, width: 2),
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.lock_outline_rounded, size: 32, color: Colors.grey.shade400),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Sign in to\nsee all',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.grey.shade500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+
                             final fruit = filtered[index];
                             final fruitName = fruit.id;
                             final fruitData =
@@ -343,7 +379,7 @@ class _FruitsScreenState extends State<FruitsScreen> {
                               ),
                             );
                           },
-                          childCount: filtered.length,
+                          childCount: totalCount,
                         ),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(

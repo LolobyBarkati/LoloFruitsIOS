@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:barkati_frits/utils/utils.dart';
 
 class SubscriptionController with WidgetsBindingObserver {
 
@@ -104,6 +105,12 @@ class SubscriptionController with WidgetsBindingObserver {
 
   /// BUY SUBSCRIPTION
   Future<void> buySubscription(ProductDetails product) async {
+
+    if (FirebaseAuth.instance.currentUser == null) {
+      // ignore: use_build_context_synchronously
+      showLoginRequired(context);
+      return;
+    }
 
     final purchaseParam = PurchaseParam(productDetails: product);
 
