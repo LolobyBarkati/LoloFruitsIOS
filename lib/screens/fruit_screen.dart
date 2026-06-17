@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -256,9 +257,7 @@ class _FruitsScreenState extends State<FruitsScreen> {
                   );
                 }
 
-                final visibleCount = isGuest ? filtered.length.clamp(0, 3) : filtered.length;
-                final showLock = isGuest && filtered.length > 3;
-                final totalCount = visibleCount + (showLock ? 1 : 0);
+                final totalCount = filtered.length;
 
                 return CustomScrollView(
                   slivers: [
@@ -281,35 +280,6 @@ class _FruitsScreenState extends State<FruitsScreen> {
                       sliver: SliverGrid(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
-                            if (index >= visibleCount) {
-                              return GestureDetector(
-                                onTap: () => showLoginRequired(context),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(24),
-                                    border: Border.all(color: Colors.grey.shade200, width: 2),
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.lock_outline_rounded, size: 32, color: Colors.grey.shade400),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Sign in to\nsee all',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.grey.shade500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }
-
                             final fruit = filtered[index];
                             final fruitName = fruit.id;
                             final fruitData =
@@ -317,25 +287,19 @@ class _FruitsScreenState extends State<FruitsScreen> {
                             final bannerUrl =
                                 fruitData['banner_url'] as String? ?? '';
 
-                            return GestureDetector(
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      FruitPostsScreen(fruitName: fruitName),
-                                ),
-                              ),
+                            final isBlurred = isGuest && index >= 4;
+
+                            final card = ClipRRect(
+                              borderRadius: BorderRadius.circular(24),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(24),
-                                  border: Border.all(
-                                      color: Colors.green.shade50, width: 2),
+                                  border: Border.all(color: Colors.green.shade50, width: 2),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.green.shade900
-                                          .withOpacity(0.04),
+                                      color: Colors.green.shade900.withOpacity(0.04),
                                       blurRadius: 12,
                                       offset: const Offset(0, 6),
                                     ),
@@ -348,19 +312,14 @@ class _FruitsScreenState extends State<FruitsScreen> {
                                       left: -15,
                                       child: CircleAvatar(
                                         radius: 30,
-                                        backgroundColor: Colors.green.shade50
-                                            .withOpacity(0.3),
+                                        backgroundColor: Colors.green.shade50.withOpacity(0.3),
                                       ),
                                     ),
                                     Center(
                                       child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          FruitIcon(
-                                              fruitName: fruitName,
-                                              size: 52,
-                                              bannerUrl: bannerUrl),
+                                          FruitIcon(fruitName: fruitName, size: 52, bannerUrl: bannerUrl),
                                           const SizedBox(height: 10),
                                           Text(
                                             _cap(fruitName),
@@ -377,6 +336,50 @@ class _FruitsScreenState extends State<FruitsScreen> {
                                   ],
                                 ),
                               ),
+                            );
+
+                            if (isBlurred) {
+                              return GestureDetector(
+                                onTap: () => showLoginRequired(context),
+                                child: Stack(
+                                  children: [
+                                    ImageFiltered(
+                                      imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                                      child: card,
+                                    ),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.4),
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.lock_outline_rounded, size: 28, color: Colors.grey.shade600),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              'Sign in\nto see',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.grey.shade700),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            return GestureDetector(
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => FruitPostsScreen(fruitName: fruitName),
+                                ),
+                              ),
+                              child: card,
                             );
                           },
                           childCount: totalCount,

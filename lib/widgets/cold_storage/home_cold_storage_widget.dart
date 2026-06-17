@@ -1,5 +1,7 @@
 import 'package:barkati_frits/models/cold_storage_model.dart';
 import 'package:barkati_frits/services/home_cold_storage_service.dart';
+import 'package:barkati_frits/utils/utils.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:barkati_frits/screens/storage_screen.dart';
@@ -48,6 +50,10 @@ class _HomeColdStorageWidgetState extends State<HomeColdStorageWidget> {
               InkWell(
                 borderRadius: BorderRadius.circular(8),
                 onTap: () {
+                  if (FirebaseAuth.instance.currentUser == null) {
+                    showLoginRequired(context);
+                    return;
+                  }
                   Navigator.pushNamed(context, StorageScreen.routeName);
                 },
                 child: Container(
@@ -100,6 +106,7 @@ class _HomeColdStorageWidgetState extends State<HomeColdStorageWidget> {
 
   // 🔹 CARD
   Widget _card(ColdStorageModel s) {
+    final isGuest = FirebaseAuth.instance.currentUser == null;
     return Container(
       width: 240,
       margin: const EdgeInsets.only(right: 10),
@@ -138,13 +145,13 @@ class _HomeColdStorageWidgetState extends State<HomeColdStorageWidget> {
               _actionBox(
                 Icons.call,
                 'Contact',
-                () => launchUrl(Uri.parse('tel:${s.phone}')),
+                isGuest ? () => showLoginRequired(context) : () => launchUrl(Uri.parse('tel:${s.phone}')),
               ),
               const SizedBox(width: 8),
               _actionBox(
                 Icons.location_on,
                 'Location',
-                () => launchUrl(Uri.parse(s.mapLink)),
+                isGuest ? () => showLoginRequired(context) : () => launchUrl(Uri.parse(s.mapLink)),
               ),
             ],
           ),

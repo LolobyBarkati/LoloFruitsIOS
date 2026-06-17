@@ -1,4 +1,6 @@
 import 'package:barkati_frits/screens/transport_screen.dart';
+import 'package:barkati_frits/utils/utils.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class HomeTransportBox extends StatelessWidget {
@@ -23,7 +25,13 @@ class HomeTransportBox extends StatelessWidget {
         AspectRatio(
           aspectRatio: 1,
           child: InkWell(
-            onTap: () {Navigator.pushNamed(context, TransportScreen.routeName);},
+            onTap: () {
+              if (FirebaseAuth.instance.currentUser == null) {
+                showLoginRequired(context);
+                return;
+              }
+              Navigator.pushNamed(context, TransportScreen.routeName);
+            },
             borderRadius: BorderRadius.circular(18),
             child: Container(
               decoration: BoxDecoration(

@@ -1,4 +1,6 @@
 import 'package:barkati_frits/screens/agents_screen.dart';
+import 'package:barkati_frits/utils/utils.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class HomeAgentBox extends StatelessWidget {
@@ -24,7 +26,10 @@ class HomeAgentBox extends StatelessWidget {
           aspectRatio: 1,
           child: InkWell(
             onTap: () {
-              // TODO: Navigate to Agents
+              if (FirebaseAuth.instance.currentUser == null) {
+                showLoginRequired(context);
+                return;
+              }
               Navigator.pushNamed(context, AgentsScreen.routeName);
             },
             borderRadius: BorderRadius.circular(18),

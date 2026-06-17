@@ -219,13 +219,7 @@ class _FruitsCategoriesWidgetState extends State<FruitsCategoriesWidget> {
           SizedBox(
             width: double.infinity,
             child: TextButton(
-              onPressed: () {
-                if (FirebaseAuth.instance.currentUser == null) {
-                  showLoginRequired(context);
-                  return;
-                }
-                Navigator.pushNamed(context, FruitsScreen.routeName);
-              },
+              onPressed: () => Navigator.pushNamed(context, FruitsScreen.routeName),
               style: TextButton.styleFrom(
                 backgroundColor: Colors.lightGreen,
                 foregroundColor: Colors.white,
