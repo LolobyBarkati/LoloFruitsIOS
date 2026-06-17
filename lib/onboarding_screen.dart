@@ -126,7 +126,9 @@ class OnboardingScreen extends StatelessWidget {
                   Center(
                     child: TextButton(
                       onPressed: () async {
-                        await FirebaseAuth.instance.signInAnonymously();
+                        try {
+                          await FirebaseAuth.instance.signInAnonymously();
+                        } catch (_) {}
                         if (context.mounted) {
                           Navigator.pushNamed(context, HomeScreen.routeName);
                         }
