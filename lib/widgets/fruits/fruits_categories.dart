@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:barkati_frits/screens/fruit_screen.dart';
 import 'package:barkati_frits/screens/fruit_posts_screen.dart';
 import 'package:barkati_frits/widgets/fruits/fruit_emoji.dart' show FruitIcon;
@@ -159,7 +158,7 @@ class _FruitsCategoriesWidgetState extends State<FruitsCategoriesWidget> {
                         final bannerUrl = data['banner_url'] as String? ?? '';
                         return GestureDetector(
                           onTap: () {
-                            if (FirebaseAuth.instance.currentUser == null) {
+                            if (isGuestUser()) {
                               showLoginRequired(context);
                               return;
                             }

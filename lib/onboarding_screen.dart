@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:barkati_frits/screens/login_screen.dart';
@@ -124,7 +125,12 @@ class OnboardingScreen extends StatelessWidget {
                   const SizedBox(height: 4),
                   Center(
                     child: TextButton(
-                      onPressed: () => Navigator.pushNamed(context, HomeScreen.routeName),
+                      onPressed: () async {
+                        await FirebaseAuth.instance.signInAnonymously();
+                        if (context.mounted) {
+                          Navigator.pushNamed(context, HomeScreen.routeName);
+                        }
+                      },
                       child: const Text(
                         'Browse without signing in',
                         style: TextStyle(

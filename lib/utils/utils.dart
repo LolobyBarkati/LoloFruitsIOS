@@ -1,4 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+bool isGuestUser() {
+  final user = FirebaseAuth.instance.currentUser;
+  return user == null || user.isAnonymous;
+}
 
 void showSnackBar(BuildContext context, String content) {
   ScaffoldMessenger.of(context).showSnackBar(

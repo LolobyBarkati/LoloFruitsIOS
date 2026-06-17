@@ -83,7 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 32),
               _buildMenuSection(),
               const SizedBox(height: 40),
-              if (user != null) _buildLogoutButton(),
+              if (user?.isAnonymous == false) _buildLogoutButton(),
               // Added bottom padding to ensure the logout button isn't touching the edge
               const SizedBox(height: 40), 
             ],
@@ -180,7 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final Uri url = Uri.parse('https://www.lolofruits.com/terms');
             if (await canLaunchUrl(url)) await launchUrl(url, mode: LaunchMode.externalApplication);
           }),
-          if (user != null)
+          if (user != null && !user.isAnonymous)
             _menuItemDestructive(Icons.delete_forever_outlined, "Delete Account", "Permanently remove your data",
                 () => _confirmDeleteAccount(context)),
         ],

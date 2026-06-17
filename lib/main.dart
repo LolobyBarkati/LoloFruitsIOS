@@ -112,12 +112,13 @@ class MyApp extends StatelessWidget {
             return const LoadingIndicator();
           }
 
-          if (snapshot.hasData && snapshot.data != null) {
-            // User is logged in → require fingerprint auth
+          final user = snapshot.data;
+          if (user != null && !user.isAnonymous) {
+            // Real logged-in user → require fingerprint auth
             return FingerprintAuthScreen();
           }
 
-          // Not logged in → show onboarding
+          // Not logged in or anonymous guest → show onboarding
           return const OnboardingScreen();
         },
       ),

@@ -13,7 +13,7 @@ class SubscriptionWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) {
+    if (user == null || user.isAnonymous) {
       return Scaffold(
         backgroundColor: const Color(0xFFF8FAF8),
         body: Center(

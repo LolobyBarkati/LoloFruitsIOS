@@ -106,7 +106,7 @@ class SubscriptionController with WidgetsBindingObserver {
   /// BUY SUBSCRIPTION
   Future<void> buySubscription(ProductDetails product) async {
 
-    if (FirebaseAuth.instance.currentUser == null) {
+    if (isGuestUser()) {
       // ignore: use_build_context_synchronously
       showLoginRequired(context);
       return;
@@ -127,7 +127,7 @@ class SubscriptionController with WidgetsBindingObserver {
   Future<void> _handlePurchase(PurchaseDetails purchase) async {
 
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null || user.isAnonymous) return;
 
     /// Prevent duplicate purchase records
     final existing = await FirebaseFirestore.instance

@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:barkati_frits/screens/fruit_posts_screen.dart';
 import 'package:barkati_frits/widgets/fruits/fruit_emoji.dart' show FruitIcon;
@@ -236,7 +235,7 @@ class _FruitsScreenState extends State<FruitsScreen> {
                   );
                 }
 
-                final isGuest = FirebaseAuth.instance.currentUser == null;
+                final isGuest = isGuestUser();
                 final allFruits = snapshot.data ?? [];
                 final filtered = allFruits.where((f) {
                   return _searchQuery.isEmpty ||

@@ -1,6 +1,5 @@
 import 'package:barkati_frits/screens/agents_screen.dart';
 import 'package:barkati_frits/utils/utils.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class HomeAgentBox extends StatelessWidget {
@@ -26,7 +25,7 @@ class HomeAgentBox extends StatelessWidget {
           aspectRatio: 1,
           child: InkWell(
             onTap: () {
-              if (FirebaseAuth.instance.currentUser == null) {
+              if (isGuestUser()) {
                 showLoginRequired(context);
                 return;
               }
