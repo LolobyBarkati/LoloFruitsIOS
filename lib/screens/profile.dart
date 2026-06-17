@@ -180,7 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final Uri url = Uri.parse('https://www.lolofruits.com/terms');
             if (await canLaunchUrl(url)) await launchUrl(url, mode: LaunchMode.externalApplication);
           }),
-          if (user != null && !user.isAnonymous)
+          if (user?.isAnonymous == false)
             _menuItemDestructive(Icons.delete_forever_outlined, "Delete Account", "Permanently remove your data",
                 () => _confirmDeleteAccount(context)),
         ],
