@@ -1,6 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barkati_frits/screens/product_detail_screen.dart';
+import 'package:barkati_frits/utils/utils.dart';
 import 'package:barkati_frits/widgets/fruits/fruit_post_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -354,6 +356,11 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
       );
     }
 
+    final isGuest = isGuestUser();
+    final visibleCount = isGuest ? filteredPosts.length.clamp(0, 4) : filteredPosts.length;
+    final showLock = isGuest && filteredPosts.length > 4;
+    final totalCount = visibleCount + (showLock ? 1 : 0) + (_hasMore && !isGuest ? 1 : 0);
+
     return GridView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
@@ -363,10 +370,50 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
         crossAxisSpacing: 16,
         childAspectRatio: 0.78,
       ),
-      itemCount: filteredPosts.length + (_hasMore ? 1 : 0),
+      itemCount: totalCount,
       itemBuilder: (context, index) {
-        if (index == filteredPosts.length) {
+        // Loading indicator for logged-in users
+        if (!isGuest && index == filteredPosts.length) {
           return const Center(child: CircularProgressIndicator(color: Color(0xFF689F38)));
+        }
+
+        // Lock tile for guests after 4 posts
+        if (isGuest && index >= visibleCount) {
+          return GestureDetector(
+            onTap: () => showLoginRequired(context),
+            child: Stack(
+              children: [
+                if (index < filteredPosts.length)
+                  ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                    child: FruitPostCard(
+                      data: filteredPosts[index].data() as Map<String, dynamic>,
+                      onTap: () {},
+                    ),
+                  ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.lock_outline_rounded, size: 32, color: Colors.grey.shade600),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Sign in to see more',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.grey.shade700),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
         }
 
         final doc = filteredPosts[index];
@@ -374,15 +421,21 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
 
         return FruitPostCard(
           data: data,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ProductDetailScreen(
-                fruitName: widget.fruitName,
-                docId: doc.id,
+          onTap: () {
+            if (isGuest) {
+              showLoginRequired(context);
+              return;
+            }
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProductDetailScreen(
+                  fruitName: widget.fruitName,
+                  docId: doc.id,
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );

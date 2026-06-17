@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barkati_frits/screens/fruit_screen.dart';
 import 'package:barkati_frits/screens/fruit_posts_screen.dart';
 import 'package:barkati_frits/widgets/fruits/fruit_emoji.dart' show FruitIcon;
-import 'package:barkati_frits/utils/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -158,10 +157,6 @@ class _FruitsCategoriesWidgetState extends State<FruitsCategoriesWidget> {
                         final bannerUrl = data['banner_url'] as String? ?? '';
                         return GestureDetector(
                           onTap: () {
-                            if (isGuestUser()) {
-                              showLoginRequired(context);
-                              return;
-                            }
                             Navigator.push(
                               context,
                               MaterialPageRoute(
