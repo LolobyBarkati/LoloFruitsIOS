@@ -122,9 +122,10 @@ class OnboardingScreen extends StatelessWidget {
                       textColor: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Center(
-                    child: TextButton(
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
                       onPressed: () async {
                         try {
                           await FirebaseAuth.instance.signInAnonymously();
@@ -133,18 +134,22 @@ class OnboardingScreen extends StatelessWidget {
                           Navigator.pushNamed(context, HomeScreen.routeName);
                         }
                       },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white54, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
                       child: const Text(
                         'Browse without signing in',
                         style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                          decoration: TextDecoration.underline,
-                          decorationColor: Colors.white70,
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

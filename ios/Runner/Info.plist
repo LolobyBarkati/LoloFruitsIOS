@@ -47,12 +47,6 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>LOLO Fruits uses Face ID to securely verify your identity before accessing your account.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app uses your location to show nearby fruit agents and cold storages.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app uses your location to show nearby fruit agents and cold storages.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>This app uses your location to show nearby fruit agents and cold storages.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>

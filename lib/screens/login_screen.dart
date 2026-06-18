@@ -54,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
       bool hasAgreed = prefs.getBool('hasAgreedToScreenTerms') ?? false;
 
       if (!hasAgreed) {
-        bool agreed = await showDialog(
+        bool? agreed = await showDialog<bool>(
           context: context,
           barrierDismissible: false,
           builder: (context) => AlertDialog(
@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
 
-        if (!agreed) {
+        if (agreed != true) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Agreement required to continue."), backgroundColor: Colors.red),
           );

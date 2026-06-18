@@ -41,10 +41,10 @@ class _ExploreScreen2State extends State<ExploreScreen2> {
         final data = snap.docs.first.data();
         
         // Check both common field names to be safe
-        final Timestamp? expiryTimestamp = data['subscription_expiry'] ?? data['expiryDate'];
+        final rawExpiry = data['subscription_expiry'] ?? data['expiryDate'];
 
-        if (expiryTimestamp != null) {
-          final expiryDate = expiryTimestamp.toDate();
+        if (rawExpiry is Timestamp) {
+          final expiryDate = rawExpiry.toDate();
           if (mounted) {
             setState(() {
               isSubscribed = expiryDate.isAfter(DateTime.now());

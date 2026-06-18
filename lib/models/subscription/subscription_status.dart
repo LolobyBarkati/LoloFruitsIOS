@@ -46,10 +46,10 @@ class SubscriptionWrapper extends StatelessWidget {
 
         if (snapshot.data!.docs.isNotEmpty) {
           final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
-          final expiry = (data["subscription_expiry"] as Timestamp).toDate();
+          final rawExpiry = data["subscription_expiry"];
           final status = data["status"] ?? false;
 
-          if (status && expiry.isAfter(DateTime.now())) {
+          if (rawExpiry is Timestamp && status && rawExpiry.toDate().isAfter(DateTime.now())) {
             active = true;
           }
         }

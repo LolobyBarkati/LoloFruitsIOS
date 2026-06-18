@@ -20,6 +20,12 @@ class _FingerprintAuthScreenState extends State<FingerprintAuthScreen> {
 
   Future<void> _authenticateWithFingerprint() async {
     try {
+      final isSupported = await auth.isDeviceSupported();
+      if (!isSupported) {
+        if (mounted) Navigator.pushReplacementNamed(context, '/home');
+        return;
+      }
+
       setState(() => isAuthenticating = true);
 
       bool authenticated = await auth.authenticate(
@@ -38,10 +44,10 @@ class _FingerprintAuthScreenState extends State<FingerprintAuthScreen> {
         _showRetryDialog();
       }
     } catch (e) {
-      print("Authentication Error: $e");
-      _showRetryDialog();
+      debugPrint("Authentication Error: $e");
+      if (mounted) Navigator.pushReplacementNamed(context, '/home');
     } finally {
-      setState(() => isAuthenticating = false);
+      if (mounted) setState(() => isAuthenticating = false);
     }
   }
 

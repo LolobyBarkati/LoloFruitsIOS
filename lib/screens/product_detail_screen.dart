@@ -48,14 +48,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Future<void> checkSubscriptionStatus() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null || user.email == null) {
+    if (user == null) {
       setState(() => isSubscribed = false);
       return;
     }
 
     final query = await FirebaseFirestore.instance
         .collection('payments')
-        .where('email', isEqualTo: user.email)
+        .where('userId', isEqualTo: user.uid)
+        .orderBy('timestamp', descending: true)
+        .limit(1)
         .get();
 
     if (query.docs.isEmpty) {
@@ -67,11 +69,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final Timestamp? expiry = data['subscription_expiry'];
     final bool status = data['status'] ?? false;
 
-    if (expiry == null || expiry.toDate().isBefore(DateTime.now())) {
-      await query.docs.first.reference.update({'status': false});
+    if (expiry == null || !status || expiry.toDate().isBefore(DateTime.now())) {
       setState(() => isSubscribed = false);
     } else {
-      setState(() => isSubscribed = status);
+      setState(() => isSubscribed = true);
     }
   }
 

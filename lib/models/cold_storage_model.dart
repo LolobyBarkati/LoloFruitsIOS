@@ -37,12 +37,12 @@ class ColdStorageModel {
 
   factory ColdStorageModel.fromCache(Map<String, dynamic> json) {
     return ColdStorageModel(
-      id: json['id'],
-      name: json['name'],
-      price: json['price'],
-      phone: json['phone'],
-      mapLink: json['mapLink'],
-      fileUrl: json['fileUrl'],
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      price: json['price'] ?? '',
+      phone: json['phone'] ?? '',
+      mapLink: json['mapLink'] ?? '',
+      fileUrl: json['fileUrl'] ?? '',
     );
   }
 }

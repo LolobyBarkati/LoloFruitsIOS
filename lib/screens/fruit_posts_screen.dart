@@ -83,7 +83,9 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
 
       switch (_sortBy) {
         case 'oldest':
-          return (dataA['timestamp'] as dynamic).compareTo(dataB['timestamp'] as dynamic);
+          final tA = (dataA['timestamp'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+          final tB = (dataB['timestamp'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+          return tA.compareTo(tB);
         case 'price_low':
           final priceA = (dataA['price'] as num?)?.toDouble() ?? 0;
           final priceB = (dataB['price'] as num?)?.toDouble() ?? 0;
@@ -93,7 +95,9 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
           final priceB = (dataB['price'] as num?)?.toDouble() ?? 0;
           return priceB.compareTo(priceA);
         default: // newest
-          return (dataB['timestamp'] as dynamic).compareTo(dataA['timestamp'] as dynamic);
+          final tA = (dataA['timestamp'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+          final tB = (dataB['timestamp'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+          return tB.compareTo(tA);
       }
     });
 
@@ -157,7 +161,7 @@ class _FruitPostsScreenState extends State<FruitPostsScreen> {
   }
 
   Future<void> _loadMorePosts() async {
-    if (_isLoading || !_hasMore) return;
+    if (_isLoading || !_hasMore || _lastDocument == null) return;
     setState(() => _isLoading = true);
     try {
       final query = FirebaseFirestore.instance

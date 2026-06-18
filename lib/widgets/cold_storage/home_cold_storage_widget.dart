@@ -144,13 +144,17 @@ class _HomeColdStorageWidgetState extends State<HomeColdStorageWidget> {
               _actionBox(
                 Icons.call,
                 'Contact',
-                isGuest ? () => showLoginRequired(context) : () => launchUrl(Uri.parse('tel:${s.phone}')),
+                isGuest ? () => showLoginRequired(context) : () {
+                  if (s.phone.isNotEmpty) launchUrl(Uri.parse('tel:${s.phone}'));
+                },
               ),
               const SizedBox(width: 8),
               _actionBox(
                 Icons.location_on,
                 'Location',
-                isGuest ? () => showLoginRequired(context) : () => launchUrl(Uri.parse(s.mapLink)),
+                isGuest ? () => showLoginRequired(context) : () {
+                  if (s.mapLink.isNotEmpty) launchUrl(Uri.parse(s.mapLink));
+                },
               ),
             ],
           ),

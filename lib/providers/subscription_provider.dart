@@ -112,9 +112,17 @@ class SubscriptionController with WidgetsBindingObserver {
       return;
     }
 
-    final purchaseParam = PurchaseParam(productDetails: product);
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final purchaseParam = PurchaseParam(
+      productDetails: product,
+      applicationUserName: uid,
+    );
 
-    await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+    try {
+      await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+    } catch (e) {
+      debugPrint('Purchase error: $e');
+    }
 
   }
 
@@ -200,7 +208,14 @@ class SubscriptionController with WidgetsBindingObserver {
     }
 
     final data = snap.docs.first.data();
-    final expiry = (data['subscription_expiry'] as Timestamp).toDate();
+    final rawExpiry = data['subscription_expiry'];
+    if (rawExpiry == null || rawExpiry is! Timestamp) {
+      isActive = false;
+      expiryDate = null;
+      onStateUpdate();
+      return;
+    }
+    final expiry = rawExpiry.toDate();
     final status = data['status'] ?? false;
 
     expiryDate = expiry;

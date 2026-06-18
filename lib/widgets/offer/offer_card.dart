@@ -24,7 +24,7 @@ class OfferCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final files = (data['files'] as List<dynamic>?) ?? [];
-    final postedAt = data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate() : DateTime.now();
+    final postedAt = data['timestamp'] is Timestamp ? (data['timestamp'] as Timestamp).toDate() : DateTime.now();
     final title = data['title']?.toString() ?? 'Special Offer';
     final filesForCard = files.where((file) => file is Map<String, dynamic> && (file['type'] != 'pdf')).toList();
 

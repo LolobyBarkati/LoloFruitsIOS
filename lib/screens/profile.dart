@@ -40,8 +40,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (snap.docs.isNotEmpty) {
         setState(() {
           _subscriptionHistory = snap.docs.map((doc) => {
-                'expiry': (doc['subscription_expiry'] as Timestamp).toDate(),
-                'date': (doc['timestamp'] as Timestamp).toDate(),
+                'expiry': doc['subscription_expiry'] is Timestamp
+                    ? (doc['subscription_expiry'] as Timestamp).toDate()
+                    : DateTime.now(),
+                'date': doc['timestamp'] is Timestamp
+                    ? (doc['timestamp'] as Timestamp).toDate()
+                    : DateTime.now(),
                 'paymentId': doc['paymentId'] ?? 'N/A',
                 'plan': doc['plan'] ?? 'monthly',
               }).toList();
@@ -209,7 +213,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'Help & Support',
       [
         _bottomSheetTile(Icons.phone, Colors.blue, 'Contact Support', '+91-85914 56683', () async {
-          final Uri phoneUri = Uri(scheme: 'tel', path: '++918591456683');
+          final Uri phoneUri = Uri(scheme: 'tel', path: '+918591456683');
           if (await canLaunchUrl(phoneUri)) await launchUrl(phoneUri);
         }),
         _bottomSheetTile(Icons.email, Colors.orange, 'Email Support', 'lolobybarkati@gmail.com', () async {
